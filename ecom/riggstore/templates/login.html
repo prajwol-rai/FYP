@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="main-container">
+    <div class="left-panel">
+        <img src="{% static '/images/signupimg.png' %}" alt="gaming illustration" />
+    </div>
+    <div class="right-panel">
+        <form id="login-form" method="post">
+            <div class="h2">
+                <h2>Welcome Back</h2>
+            </div>
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username" 
+                       placeholder="Enter your username" class="form-input" required />
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-container">
+                    <input type="password" name="password" id="password" 
+                           class="password-input" placeholder="Enter your password" required />
+                    <button type="button" class="toggle-password" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button class="button" type="submit">Sign In</button>
+
+            <div class="login-links">
+                <p class="signup-link">
+                    New to RiggStore? <a href="{% url 'signup' %}">Create account</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-color: #2563eb;
+        --secondary-color: #3b82f6;
+        --text-color: #1f2937;
+        --border-color: #e2e8f0;
+    }
+
+    .main-container {
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        max-width: 1600px; /* Increased max-width */
+        margin: 0 auto;
+    }
+
+    .left-panel {
+        flex: 1;
+        max-width: 800px; /* Increased size */
+        padding: 2rem;
+    }
+
+    .left-panel img {
+        width: 100%;
+        height: 700px; /* Taller image */
+        object-fit: contain;
+    }
+
+    .right-panel {
+        flex: 1;
+        max-width: 700px; /* Wider form */
+        padding: 2rem; /* Reduced padding */
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .right-panel h2 {
+        font-size: 2.8rem; /* Larger heading */
+        margin-bottom: 2rem; /* Reduced margin */
+        color: var(--text-color);
+        font-weight: 700;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem; /* Reduced spacing */
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem; /* Reduced margin */
+        font-size: 1rem; /* Smaller label */
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .password-container {
+        position: relative;
+    }
+
+    .password-input {
+        width: 100%;
+        padding: 1rem; /* Reduced padding */
+        border: 2px solid var(--border-color);
+        border-radius: 0.5rem;
+        font-size: 1rem; /* Smaller font size */
+        padding-right: 3.5rem; /* Space for eye icon */
+    }
+
+    .toggle-password {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #64748b;
+        background: none;
+        border: none;
+        padding: 0;
+    }
+
+    .toggle-password:hover {
+        color: var(--primary-color);
+    }
+
+    .button {
+        width: 100%;
+        padding: 1rem; /* Reduced button size */
+        font-size: 1rem; /* Smaller font size */
+        margin-top: 1.5rem; /* Reduced margin */
+    }
+
+    .login-links {
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<script>
+function togglePassword() {
+    const passwordInput = document.getElementById("password");
+    const eyeIcon = document.querySelector(".toggle-password i");
+    
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+        passwordInput.type = "password";
+        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
+    }
+}
+</script>
+
+{% endblock %}

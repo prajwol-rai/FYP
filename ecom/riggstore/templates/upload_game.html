@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Game{% endblock %}
+
+{% block content %}
+<!-- Display any Django messages (errors, success notifications) -->
+{% if messages %}
+<div class="alert-container">
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+    {{ message }}
+    <button type="button" class="close" data-dismiss="alert">
+      <span>&times;</span>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Upload Game Form Container -->
+<div class="upload-game-container">
+    <div class="card upload-card">
+        <!-- Card Header with Title -->
+        <div class="card-header upload-header">
+            <h3>Game Upload Form</h3>
+        </div>
+        <!-- Card Body with Form -->
+        <div class="card-body">
+            <form method="POST" action="{% url 'upload_game' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Basic Information Section -->
+                <div class="form-section">
+                    <h4 class="section-title">Basic Information</h4>
+                    <div class="form-group">
+                        <label for="id_title">Game Title</label>
+                        <input type="text" class="form-control" id="id_title" name="title" placeholder="Enter game title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_description">Game Description</label>
+                        <textarea class="form-control" id="id_description" name="description" rows="4" placeholder="Enter game description" required></textarea>
+                    </div>
+                </div>
+                
+                <!-- Media Uploads Section -->
+                <div class="form-section">
+                    <h4 class="section-title">Media Files</h4>
+                    <div class="form-group">
+                        <label for="id_screenshots">Game Screenshots</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="id_screenshots" name="screenshots[]" accept="image/*" multiple>
+                            <label class="custom-file-label" for="id_screenshots">Choose images...</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_trailer">Game Trailer</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="id_trailer" name="trailer" accept="video/*">
+                            <label class="custom-file-label" for="id_trailer">Choose video file...</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_thumbnail">Thumbnail Image</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="id_thumbnail" name="thumbnail" accept="image/*" required>
+                            <label class="custom-file-label" for="id_thumbnail">Choose main thumbnail...</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Requirements Section -->
+                <div class="form-section">
+                    <h4 class="section-title">System Requirements</h4>
+                    
+                    <!-- Minimum Requirements -->
+                    <div class="requirements-group">
+                        <h5>Minimum Requirements</h5>
+                        <div class="spec-grid">
+                            <div class="form-group">
+                                <label for="id_min_os">OS</label>
+                                <select class="form-control" id="id_min_os" name="min_os" required>
+                                    <option value="">Select OS</option>
+                                    <option value="Windows 10">Windows 10</option>
+                                    <option value="Windows 11">Windows 11</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_min_processor">Processor</label>
+                                <select class="form-control" id="id_min_processor" name="min_processor" required>
+                                    <option value="">Select Processor</option>
+                                    <option value="Intel Core i3">Intel Core i3</option>
+                                    <option value="Intel Core i5">Intel Core i5</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_min_ram">Memory</label>
+                                <select class="form-control" id="id_min_ram" name="min_ram" required>
+                                    <option value="">Select RAM</option>
+                                    <option value="4 GB">4 GB</option>
+                                    <option value="8 GB">8 GB</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_min_gpu">Graphics</label>
+                                <select class="form-control" id="id_min_gpu" name="min_gpu" required>
+                                    <option value="">Select GPU</option>
+                                    <option value="NVIDIA GTX 660">NVIDIA GTX 660</option>
+                                    <option value="AMD Radeon HD 7850">AMD Radeon HD 7850</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_min_directx">DirectX</label>
+                                <select class="form-control" id="id_min_directx" name="min_directx" required>
+                                    <option value="">Select DirectX</option>
+                                    <option value="11">Version 11</option>
+                                    <option value="12">Version 12</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recommended Requirements -->
+                    <div class="requirements-group">
+                        <h5>Recommended Requirements</h5>
+                        <div class="spec-grid">
+                            <div class="form-group">
+                                <label for="id_rec_os">OS</label>
+                                <select class="form-control" id="id_rec_os" name="rec_os" required>
+                                    <option value="">Select OS</option>
+                                    <option value="Windows 10">Windows 10</option>
+                                    <option value="Windows 11">Windows 11</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_rec_processor">Processor</label>
+                                <select class="form-control" id="id_rec_processor" name="rec_processor" required>
+                                    <option value="">Select Processor</option>
+                                    <option value="Intel Core i5">Intel Core i5</option>
+                                    <option value="AMD Ryzen 5">AMD Ryzen 5</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_rec_ram">Memory</label>
+                                <select class="form-control" id="id_rec_ram" name="rec_ram" required>
+                                    <option value="">Select RAM</option>
+                                    <option value="8 GB">8 GB</option>
+                                    <option value="16 GB">16 GB</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_rec_gpu">Graphics</label>
+                                <select class="form-control" id="id_rec_gpu" name="rec_gpu" required>
+                                    <option value="">Select GPU</option>
+                                    <option value="NVIDIA RTX 3060">NVIDIA RTX 3060</option>
+                                    <option value="AMD Radeon RX 6700">AMD Radeon RX 6700</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_rec_directx">DirectX</label>
+                                <select class="form-control" id="id_rec_directx" name="rec_directx" required>
+                                    <option value="">Select DirectX</option>
+                                    <option value="12">Version 12</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Game Files Section -->
+                <div class="form-section">
+                    <h4 class="section-title">Game Files</h4>
+                    <div class="form-group">
+                        <label for="id_game_file">Game File (ZIP)</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="id_game_file" name="game_file" accept=".zip" required>
+                            <label class="custom-file-label" for="id_game_file">Choose ZIP file...</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_version">Game Version</label>
+                        <input type="text" class="form-control" id="id_version" name="version" placeholder="e.g., 1.0.0" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block mt-4">
+                    <i class="fas fa-upload"></i> Upload Game
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for handling file input labels and form submission -->
+<script>
+    // Update file label when files are selected
+    document.querySelectorAll('.custom-file-input').forEach(input => {
+        input.addEventListener('change', function(e) {
+            const files = e.target.files;
+            let label = this.nextElementSibling;
+            if (files.length > 1) {
+                label.textContent = `${files.length} files selected`;
+            } else {
+                label.textContent = files[0].name;
+            }
+        });
+    });
+
+    // Validate game file size and show a loading state on submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const gameFile = document.getElementById('id_game_file').files[0];
+        const maxSize = 1024 * 1024 * 2; // 2GB in bytes
+        if (gameFile && gameFile.size > maxSize) {
+            alert('File size exceeds 2GB limit');
+            e.preventDefault();
+        }
+        const submitBtn = document.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        submitBtn.disabled = true;
+    });
+</script>
+
+<style>
+.upload-game-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.upload-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+}
+
+.upload-header {
+    background-color: #2563eb;
+    color: #fff;
+    padding: 1rem 1.5rem;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.upload-header h3 {
+    margin: 0;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.custom-file {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: calc(2.5rem + 2px);
+    margin-bottom: 0;
+}
+
+.custom-file-input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.custom-file-label {
+    position: relative;
+    display: block;
+    height: calc(2.5rem + 2px);
+    padding: 0.5rem 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.custom-file-label::after {
+    content: "Browse";
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: calc(2.5rem + 2px);
+    padding: 0.5rem 1rem;
+    background-color: #d1d1d1;
+    border-left: 1px solid #ced4da;
+    border-radius: 0 4px 4px 0;
+    color: #fff;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-primary {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    font-size: 1.1rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #1e40af;
+    border-color: #1e40af;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.section-title {
+    color: #1e40af;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #1e40af;
+}
+
+.spec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.requirements-group {
+    margin-bottom: 2rem;
+}
+
+.requirements-group h5 {
+    color: #374151;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+}
+
+/* Update existing styles for better spacing */
+.custom-file-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+</style>
+{% endblock %}

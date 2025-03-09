@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="account-container">
+    <h2 class="account-heading">Update Profile</h2>
+    
+
+    <form method="post" id="profile-edit-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="detail-grid">
+            {% for field in form %}
+                {% if field.name != 'image' %}
+                <div class="detail-item">
+                    <label class="detail-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="text-danger">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <div class="button-group">
+            <button type="button" class="btn-back" onclick="goBack()">Cancel</button>
+            <button type="submit" class="btn-edit">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<!-- Updated Confirmation Modal with Password Field -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Changes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to save these changes to your profile?</p>
+                <div class="form-group">
+                    <label for="passwordVerification">Enter your password to confirm changes:</label>
+                    <input type="password" class="form-control" id="passwordVerification" required>
+                    <div id="passwordError" class="text-danger mt-2" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSave">Confirm & Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+
+    function goBack() {
+        window.history.back(); 
+    }
+
+    // Updated form submission handler
+    document.getElementById('profile-edit-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        modal.show();
+    });
+
+    // Password verification handler
+    document.getElementById('confirmSave').addEventListener('click', async function() {
+        const password = document.getElementById('passwordVerification').value;
+        const errorContainer = document.getElementById('passwordError');
+        
+        try {
+            const response = await fetch("{% url 'verify_password' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ password: password })
+            });
+
+            const data = await response.json();
+
+            if (data.valid) {
+                document.getElementById('profile-edit-form').submit();
+            } else {
+                errorContainer.textContent = 'Incorrect password. Please try again.';
+                errorContainer.style.display = 'block';
+            }
+        } catch (error) {
+            errorContainer.textContent = 'Verification failed. Please try again.';
+            errorContainer.style.display = 'block';
+        }
+    });
+</script>
+
+<style>
+    :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --surface: #ffffff;
+        --border: #e5e7eb;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --radius: 12px;
+        --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .account-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .account-heading {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    /* Profile Photo Section */
+    .profile-photo-section {
+        text-align: center;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .profile-preview {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border);
+        transition: all 0.2s ease;
+    }
+
+    .profile-preview:hover {
+        border-color: var(--primary);
+    }
+
+    .upload-photo-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--surface);
+        color: var(--primary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 1rem;
+    }
+
+    .upload-photo-btn:hover {
+        background: #f8f9ff;
+        border-color: var(--primary);
+        transform: translateY(-1px);
+    }
+
+    /* Form Elements */
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .detail-item {
+        position: relative;
+    }
+
+    .detail-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .detail-item input,
+    .detail-item textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        transition: all 0.2s ease;
+    }
+
+    .detail-item input:focus,
+    .detail-item textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Buttons */
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn-edit {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.25px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-edit:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .btn-back {
+        padding: 0.75rem 1rem;
+        background: var(--surface);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-back:hover {
+        background: #f9fafb;
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    /* Modal Adjustments */
+    .modal-content {
+        border-radius: var(--radius);
+        border: none;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border);
+        padding: 1.25rem;
+    }
+
+    .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .modal-body {
+        padding: 1.25rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border);
+        padding: 1.25rem;
+    }
+
+    #passwordVerification {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+    }
+
+    @media (max-width: 640px) {
+        .account-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+
+        .btn-edit,
+        .btn-back {
+            width: 100%;
+        }
+    }
+</style>
+
+{% endblock %}

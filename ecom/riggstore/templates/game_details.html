@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- game_details.html -->
+<section class="game-details-section py-5">
+    <div class="container">
+        <div class="game-details-header text-center">
+            <h1 class="display-4">{{ game.name }}</h1>
+            <p class="lead">{{ game.category.name }}</p>
+            <div class="price-container">
+                <span class="current-price">Rs. {{ game.price }}</span>
+            </div>
+        </div>
+
+        <div class="game-details-content">
+            <div class="game-screenshots">
+                <h4>Screenshots</h4>
+                <div class="screenshots-carousel">
+                    {% for screenshot in game.screenshots.all %}
+                    <img src="{{ screenshot.image.url }}" alt="Game screenshot">
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="game-bio">
+                <h4>About the Game</h4>
+                <p>{{ game.description }}</p>
+            </div>
+
+            <div class="system-requirements">
+                <h4>System Requirements</h4>
+                <div class="requirements">
+                    <div class="min-requirements">
+                        <h5>Minimum:</h5>
+                        <ul>
+                            <li><strong>OS:</strong> {{ game.min_os }}</li>
+                            <li><strong>Processor:</strong> {{ game.min_processor }}</li>
+                            <li><strong>Memory:</strong> {{ game.min_ram }} RAM</li>
+                            <li><strong>Graphics:</strong> {{ game.min_gpu }}</li>
+                            <li><strong>DirectX:</strong> {{ game.min_directx }}</li>
+                        </ul>
+                    </div>
+                    <div class="rec-requirements">
+                        <h5>Recommended:</h5>
+                        <ul>
+                            <li><strong>OS:</strong> {{ game.rec_os }}</li>
+                            <li><strong>Processor:</strong> {{ game.rec_processor }}</li>
+                            <li><strong>Memory:</strong> {{ game.rec_ram }} RAM</li>
+                            <li><strong>Graphics:</strong> {{ game.rec_gpu }}</li>
+                            <li><strong>DirectX:</strong> {{ game.rec_directx }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="developer-info">
+                <h4>Developed by</h4>
+                <div class="developer-card">
+                    <img src="{{ game.developer.user.image.url }}" 
+                         alt="{{ game.developer.user.user.username }}" 
+                         class="developer-avatar">
+                    <div class="developer-details">
+                        <h5>{{ game.developer.user.user.username }}</h5>
+                        {% if game.developer.company_name %}
+                        <p>{{ game.developer.company_name }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="buy-now-section">
+                <button class="btn btn-success btn-lg">
+                    <i class="fas fa-shopping-cart"></i> Buy Now - Rs. {{ game.price }}
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .game-details-section {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 4rem 0;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .game-details-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem 0;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 1.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    }
+
+    .game-details-header h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        letter-spacing: -0.025em;
+    }
+
+    .price-container {
+        display: inline-flex;
+        align-items: center;
+        gap: 1.5rem;
+        background: #ffffff;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin: 1.5rem 0;
+    }
+
+    .current-price {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    .original-price {
+        color: #94a3b8;
+        text-decoration: line-through;
+        font-size: 1.25rem;
+    }
+
+    .sale-price {
+        color: #10b981;
+        font-weight: 700;
+        font-size: 1.5rem;
+        padding: 0.5rem 1rem;
+        background: #ecfdf5;
+        border-radius: 0.75rem;
+    }
+
+    .game-details-content {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .game-screenshots {
+        margin: 2rem 0;
+    }
+
+    .screenshots-carousel {
+        display: flex;
+        gap: 1.5rem;
+        overflow-x: auto;
+        padding: 1rem 0;
+        scroll-snap-type: x mandatory;
+    }
+
+    .screenshots-carousel img {
+        width: 400px;
+        height: 250px;
+        object-fit: cover;
+        border-radius: 1rem;
+        scroll-snap-align: start;
+        transition: transform 0.3s ease;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .screenshots-carousel img:hover {
+        transform: translateY(-5px);
+    }
+
+    .game-bio,
+    .system-requirements,
+    .game-reviews,
+    .release-date,
+    .developer {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+        margin: 1.5rem 0;
+    }
+
+    h4 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+
+    .system-requirements {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2.5rem;
+    }
+
+    .requirements-group {
+        background: #ffffff;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .requirements-group h5 {
+        font-size: 1.25rem;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .requirements-group ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .requirements-group li {
+        padding: 0.75rem 0;
+        color: #475569;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .requirements-group li:last-child {
+        border-bottom: none;
+    }
+
+    .game-reviews p {
+        background: #ffffff;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        margin: 1rem 0;
+    }
+
+    .buy-now {
+        text-align: center;
+        margin: 3rem 0;
+    }
+
+    .btn-success {
+        background: linear-gradient(45deg, #10b981, #059669);
+        padding: 1.5rem 4rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        border-radius: 1.25rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-success:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 1.5rem;
+        }
+
+        .game-details-header h1 {
+            font-size: 2rem;
+        }
+
+        .system-requirements {
+            grid-template-columns: 1fr;
+        }
+
+        .screenshots-carousel img {
+            width: 280px;
+            height: 180px;
+        }
+
+        .btn-success {
+            width: 100%;
+            padding: 1.25rem 2rem;
+        }
+    }
+
+    ::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: rgba(241, 245, 249, 0.5);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+</style>
+
+{% endblock %}

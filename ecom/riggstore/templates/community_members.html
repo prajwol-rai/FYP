@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .community-members-container {
+        max-width: 1600px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    .community-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+        padding: 1rem 0;
+        position: relative;
+    }
+
+    .back-button {
+        background: var(--glass-bg);
+        border-radius: 12px;
+        padding: 0.75rem;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+    }
+
+    .back-button:hover {
+        transform: translateY(-2px);
+        background: var(--card-bg);
+    }
+
+    .member-count {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .members-list {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .role-section {
+        background: var(--glass-bg);
+        backdrop-filter: var(--blur);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+    }
+
+    .role-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text);
+    }
+
+    .members-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .member-card {
+        background: var(--card-bg);
+        padding: 1.25rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+    .member-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .member-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--primary);
+    }
+
+    .member-details {
+        flex: 1;
+    }
+
+    .member-name {
+        margin: 0;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .member-role {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .badge {
+        background: var(--primary);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .creator-badge {
+        background: #10b981;
+    }
+
+    .join-date {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+        .community-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .members-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .member-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+        padding-left: 1rem;
+    }
+
+    .action-form {
+        display: inline-block;
+    }
+
+    .btn {
+        padding: 0.5rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+    }
+
+    .btn-promote {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-promote:hover {
+        background: #2563eb;
+    }
+
+    .btn-demote {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .btn-demote:hover {
+        background: #d97706;
+    }
+
+    .btn-kick {
+        background: #ef4444;
+        color: white;
+    }
+
+    .btn-kick:hover {
+        background: #dc2626;
+    }
+</style>
+<!-- Community Members Container -->
+<div class="community-members-container">
+    <!-- Community Header -->
+    <div class="community-header">
+        <a href="{% url 'community_detail' community.id %}" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="section-title">{{ community.name }} Members</h1>
+        <div class="member-count">{{ community.members.count }} Members</div>
+    </div>
+
+    <!-- Administrators Section -->
+    <div class="role-section">
+        <h3 class="role-title">
+            <i class="fas fa-shield-alt"></i>
+            Administrators
+            <span class="badge">{{ admins.count }}</span>
+        </h3>
+        <div class="members-grid">
+            {% for member in admins %}
+            <div class="member-card">
+                <img src="{{ member.image.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                <div class="member-details">
+                    <h4 class="member-name">
+                        {{ member.user.username }}
+                        {% if member == community.created_by %}
+                            <span class="badge creator-badge">Creator</span>
+                        {% endif %}
+                    </h4>
+                    <p class="member-email">{{ member.user.email }}</p>
+                    <p class="member-role">Community Admin</p>
+                </div>
+                {% if is_admin and member != community.created_by %}
+                <div class="member-actions">
+                    <!-- Kick Admin (only if not the creator) -->
+                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to kick this admin?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-kick" title="Kick from community">
+                            <i class="fas fa-user-times"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Moderators Section -->
+    {% if moderators.exists %}
+    <div class="role-section">
+        <h3 class="role-title">
+            <i class="fas fa-user-shield"></i>
+            Moderators
+            <span class="badge">{{ moderators.count }}</span>
+        </h3>
+        <div class="members-grid">
+            {% for member in moderators %}
+            <div class="member-card">
+                <img src="{{ member.image.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                <div class="member-details">
+                    <h4 class="member-name">{{ member.user.username }}</h4>
+                    <p class="member-email">{{ member.user.email }}</p>
+                    <p class="member-role">Moderator</p>
+                </div>
+                {% if is_admin %}
+                <div class="member-actions">
+                    <!-- Demote moderator to regular member -->
+                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to demote this moderator to a regular member?" action="{% url 'demote_to_member' community.id member.user.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-demote" title="Demote to member">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </form>
+                    <!-- Kick moderator -->
+                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to kick this moderator?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-kick" title="Kick from community">
+                            <i class="fas fa-user-times"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Regular Members Section -->
+    <div class="role-section">
+        <h3 class="role-title">
+            <i class="fas fa-users"></i>
+            Regular Members
+            <span class="badge">{{ regular_members_count }}</span>
+        </h3>
+        <div class="members-grid">
+            {% for member in regular_members %}
+            <div class="member-card">
+                <img src="{{ member.image.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                <div class="member-details">
+                    <h4 class="member-name">{{ member.user.username }}</h4>
+                    <p class="member-email">{{ member.user.email }}</p>
+                    <p class="member-role">Member</p>
+                </div>
+                {% if is_admin %}
+                <div class="member-actions">
+                    <!-- Promote member to moderator -->
+                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to promote this member to moderator?" action="{% url 'promote_to_moderator' community.id member.user.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-promote" title="Promote to moderator">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                    </form>
+                    <!-- Kick member -->
+                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to kick this member?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-kick" title="Kick from community">
+                            <i class="fas fa-user-times"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include SweetAlert library if not already included -->
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script>
+// Attach event listeners to forms that require confirmation
+document.querySelectorAll('.needs-confirmation').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const message = this.getAttribute('data-confirm-message') || "Are you sure?";
+        swal({
+            title: "Confirm Action",
+            text: message,
+            icon: "warning",
+            buttons: true,
+            dangerMode: true,
+        }).then((willSubmit) => {
+            if (willSubmit) {
+                this.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
