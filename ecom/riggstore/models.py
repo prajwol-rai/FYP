@@ -164,8 +164,13 @@ class GameSubmission(models.Model):
     def __str__(self):
         return self.title
 
+# In models.py
 class GameScreenshot(models.Model):
-    game = models.ForeignKey(GameSubmission, on_delete=models.CASCADE)
+    submission = models.ForeignKey(  # Must match this field name
+        GameSubmission,
+        on_delete=models.CASCADE,
+        related_name='screenshots'
+    )
     image = models.ImageField(upload_to='uploads/screenshots/')
 
 # ======================

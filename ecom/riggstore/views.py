@@ -657,67 +657,67 @@ def review_submissions(request):
     submissions = GameSubmission.objects.filter(status='pending')
     return render(request, 'admin/review_submissions.html', {'submissions': submissions})
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from .models import GameSubmission, Game, GameScreenshot
+
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: u.is_staff)
 def review_submission(request, submission_id):
-    submission = get_object_or_404(GameSubmission, id=submission_id)
-    screenshots = submission.gamescreenshot_set.all()  # Fetch all screenshots related to this submission
+    submission = get_object_or_404(
+        GameSubmission.objects.select_related('developer__user')
+                             .prefetch_related('screenshots'),
+        id=submission_id
+    )
 
     if request.method == 'POST':
+        if not request.user.is_staff:
+            messages.error(request, "You don't have permission to perform this action.")
+            return redirect('home')
+
         action = request.POST.get('action')
         notes = request.POST.get('notes', '')
 
         try:
             if action == 'approve':
-                # Ensure that the game is only created if not already approved
                 if submission.status != 'approved':
-                    # Check that the developer exists and is properly linked
-                    if not submission.developer:
-                        messages.error(request, 'No associated developer found.')
-                        return redirect('review_submissions')
-
-                    # Create actual Game from the submission
+                    # Create Game instance from submission
                     game = Game.objects.create(
-                        name=submission.title,
+                        title=submission.title,
                         description=submission.description,
                         developer=submission.developer,
-                        price=0,  # Set appropriate price
-                        image=submission.thumbnail,
+                        price=0.00,
+                        thumbnail=submission.thumbnail,
                         approved=True
                     )
+                    
+                    # Copy screenshots
+                    for screenshot in submission.screenshots.all():
+                        GameScreenshot.objects.create(game=game, image=screenshot.image)
 
-                    # Handle screenshots if they exist
-                    if screenshots.exists():
-                        for screenshot in screenshots:
-                            GameScreenshot.objects.create(game=game, image=screenshot.image)
-
-                    # Mark the submission as approved
                     submission.status = 'approved'
-                    submission.admin_notes = notes
-                    submission.save()
-
                     messages.success(request, 'Game approved and published!')
                 else:
                     messages.warning(request, 'This submission is already approved.')
 
             elif action == 'reject':
-                # Reject the submission and update status
                 submission.status = 'rejected'
-                submission.admin_notes = notes
-                submission.save()
                 messages.warning(request, 'Submission rejected.')
 
-            return redirect('review_submissions')  # Redirect to submissions list after action
-
-        except Exception as e:
-            # Handle any unexpected errors and show message
-            messages.error(request, f"An error occurred: {str(e)}")
+            submission.admin_notes = notes
+            submission.save()
             return redirect('review_submissions')
 
-    return render(request, 'admin/review_detail.html', {
+        except Exception as e:
+            messages.error(request, f'Error processing request: {str(e)}')
+            return redirect('review_submissions')
+
+    context = {
         'submission': submission,
-        'screenshots': screenshots
-    })
+        'can_edit': submission.status == 'pending' and request.user.is_staff
+    }
+    return render(request, 'review_submission.html', context)
 
 
 # ======================
