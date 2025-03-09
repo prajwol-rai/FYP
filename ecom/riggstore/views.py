@@ -609,36 +609,34 @@ def developer_dashboard(request):
 @login_required
 def upload_game(request):
     try:
-        # Ensure the user has an associated Customer account
-        customer = request.user.customer  
-        developer = Developer.objects.get(user=customer)  # ✅ Get Developer instance
-
+        customer = request.user.customer
+        developer = Developer.objects.get(user=customer)
+        
         if request.method == 'POST':
             form = GameUploadForm(request.POST, request.FILES)
             if form.is_valid():
+                # Process valid form
                 submission = form.save(commit=False)
-                submission.developer = developer  # ✅ Assign actual Developer instance
+                submission.developer = developer
                 submission.status = 'pending'
                 submission.save()
 
-                # Handle multiple screenshots
+                # Handle screenshots
                 for file in request.FILES.getlist('screenshots'):
                     GameScreenshot.objects.create(game=submission, image=file)
 
-                messages.success(request, 'Game submitted for approval!')
+                messages.success(request, 'Game submitted for review!')
                 return redirect('developer_dashboard')
-            else:
-                messages.error(request, f"Invalid form data: {form.errors}")
 
-    except Customer.DoesNotExist:
-        messages.error(request, "You need a customer profile to upload games.")
+            # Handle invalid form
+            messages.error(request, 'Please correct the errors below')
+            return render(request, 'upload_game.html', {'form': form})
+
+        return render(request, 'upload_game.html', {'form': GameUploadForm()})
+
+    except (Customer.DoesNotExist, Developer.DoesNotExist) as e:
+        messages.error(request, 'You need a developer account to upload games')
         return redirect('home')
-
-    except Developer.DoesNotExist:
-        messages.error(request, "You are not an approved developer.")
-        return redirect('home')
-
-    return render(request, 'upload_game.html', {'form': GameUploadForm()})
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
