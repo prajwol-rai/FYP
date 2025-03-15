@@ -48,7 +48,7 @@ class Developer(models.Model):
 
 class Game(models.Model):
     name = models.CharField(max_length=100)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, default=1)
+    categories = models.ManyToManyField(Category)  
     price = models.DecimalField(default=0, decimal_places=2, max_digits=6)
     sale_price = models.DecimalField(default=0, decimal_places=2, max_digits=6)
     description = models.CharField(max_length=250, blank=True)
@@ -140,6 +140,7 @@ class GameSubmission(models.Model):
 
     developer = models.ForeignKey('Developer', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
+    categories = models.ManyToManyField(Category)
     description = models.TextField()
     price = models.DecimalField(default=0, decimal_places=2, max_digits=6)  
 

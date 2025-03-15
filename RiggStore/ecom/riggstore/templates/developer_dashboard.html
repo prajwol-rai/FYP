@@ -1,43 +1,293 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Developer Dashboard</h2>
-    
-    <div class="card">
-        <div class="card-header">
-            <h4>Your Game Submissions</h4>
+<div class="developer-dashboard">
+    <div class="container">
+        <div class="dashboard-header">
+            <h2 class="dashboard-title">Developer Dashboard</h2>
+            <a href="{% url 'upload_game' %}" class="new-submission-btn">
+                <i class="fas fa-plus"></i> New Submission
+            </a>
         </div>
-        
-        <div class="card-body">
+
+        <div class="submissions-container">
             {% if submissions %}
-                <div class="list-group">
+                <div class="submissions-list">
                     {% for submission in submissions %}
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5>{{ submission.title }}</h5>
-                                <p class="mb-1">Version: {{ submission.version }}</p>
-                                <small class="text-muted">
-                                    Submitted on {{ submission.submitted_at|date:"F j, Y" }}
-                                </small>
+                    <div class="submission-card">
+                        <div class="submission-content">
+                            <div class="submission-meta">
+                                <h3 class="submission-title">{{ submission.title }}</h3>
+                                <div class="submission-stats">
+                                    <span class="download-count">
+                                        <i class="fas fa-download"></i>
+                                        {{ submission.download_count|default:"0" }} downloads
+                                    </span>
+                                    <span class="version">
+                                        <i class="fas fa-code-branch"></i>
+                                        v{{ submission.version }}
+                                    </span>
+                                </div>
+                                <time class="submission-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ submission.submitted_at|date:"M d, Y" }}
+                                </time>
                             </div>
-                            <span class="badge 
-                                {% if submission.status == 'approved' %}bg-success
-                                {% elif submission.status == 'rejected' %}bg-danger
-                                {% else %}bg-warning{% endif %}">
-                                {{ submission.get_status_display }}
-                            </span>
+                            
+                            <div class="submission-actions">
+                                <span class="status-badge {{ submission.status }}">
+                                    {{ submission.get_status_display }}
+                                </span>
+                                <div class="action-buttons">
+                                    <a href="{% url 'edit_submission' submission.id %}" 
+                                       class="edit-btn">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <form method="POST" action="{% url 'delete_submission' submission.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="delete-btn"
+                                                onclick="return confirm('Permanently delete this submission?')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="alert alert-info">
-                    No game submissions found.
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h3>No Submissions Found</h3>
+                    <p>Ready to share your creation? Start with a new submission!</p>
+                    <a href="{% url 'upload_game' %}" class="cta-btn">
+                        <i class="fas fa-rocket"></i> Create First Submission
+                    </a>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+    :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --text: #1e293b;
+        --background: #f8fafc;
+        --card-bg: #ffffff;
+        --border: #e2e8f0;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .developer-dashboard {
+        padding: 2rem 0;
+        background-color: var(--background);
+        min-height: 100vh;
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .new-submission-btn {
+        background: var(--primary);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .new-submission-btn:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .submissions-list {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .submission-card {
+        background: var(--card-bg);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        transition: all 0.2s ease;
+    }
+
+    .submission-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .submission-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .submission-meta {
+        flex-grow: 1;
+    }
+
+    .submission-title {
+        font-size: 1.25rem;
+        color: var(--text);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .submission-stats {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .download-count, .version, .submission-date {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .submission-date {
+        font-size: 0.8rem;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-badge.approved { background: var(--success); color: white; }
+    .status-badge.pending { background: var(--warning); color: white; }
+    .status-badge.rejected { background: var(--danger); color: white; }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+
+    .edit-btn, .delete-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .edit-btn {
+        background: var(--primary);
+        color: white;
+    }
+
+    .edit-btn:hover {
+        background: var(--primary-hover);
+    }
+
+    .delete-btn {
+        background: #f8fafc;
+        color: var(--danger);
+        border: 1px solid var(--border);
+    }
+
+    .delete-btn:hover {
+        background: #fee2e2;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: var(--shadow);
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        color: var(--text);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    .cta-btn {
+        background: var(--primary);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .cta-btn:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .submission-content {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .submission-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+
+        .new-submission-btn {
+            justify-content: center;
+        }
+    }
+</style>
 {% endblock %}

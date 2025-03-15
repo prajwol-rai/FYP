@@ -46,6 +46,7 @@ urlpatterns = [
     path('review-submissions/', views.review_submissions, name='review_submissions'),
     path('review-submission/<int:submission_id>/', views.review_submission, name='review_submission'),
     path('developer/dashboard/', views.developer_dashboard, name='developer_dashboard'),
+    path('edit-submission/<int:submission_id>/', views.edit_submission, name='edit_submission'),
     
     # Miscellaneous
     path('aboutus/', views.aboutus, name='aboutus'),

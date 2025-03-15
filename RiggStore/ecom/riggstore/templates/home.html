@@ -3,52 +3,54 @@
 {% block content %}
 
 <header class="title">
-    <h1 class="display-4">Get Yourself a Game</h1>
+    <h1 class="display-4">Explore Our Game Collection</h1>
 </header>
 
 <section class="game-section py-4">
     <div class="container">
         {% if games %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        <div class="game-grid">
             {% for game in games %}
-            <div class="col">
-                <div class="card h-100 game-card shadow-sm">
+            <div class="game-card-wrapper">
+                <div class="game-card">
                     {% if game.is_on_sale %}
-                    <div class="sale-ribbon">SALE</div>
+                    <div class="sale-badge">SALE</div>
                     {% endif %}
                     
-                    <img src="{{ game.image.url }}" 
-                         class="card-img-top game-thumbnail" 
-                         alt="{{ game.name }}"
-                         loading="lazy">
+                    <div class="card-image">
+                        <img src="{{ game.image.url }}" 
+                             class="game-thumbnail" 
+                             alt="{{ game.name }}"
+                             loading="lazy">
+                    </div>
                     
-                    <div class="card-body d-flex flex-column">
-                        <div class="game-meta mb-2">
-                            <span class="badge bg-primary">{{ game.category.name }}</span>
-                            {% if game.approved %}
-                            <span class="badge bg-success">Verified</span>
-                            {% endif %}
+                    <div class="card-content">
+                        <div class="game-meta">
+                            {% for category in game.categories.all %}
+                            <span class="genre-tag">{{ category.name }}</span>
+                            {% endfor %}
                         </div>
                         
-                        <h3 class="game-title h5 mb-3">{{ game.name }}</h3>
+                        <h3 class="game-title">{{ game.name }}</h3>
                         
-                        <div class="price-container mt-auto">
+                        <div class="price-container">
                             {% if game.is_on_sale %}
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-danger fs-5 fw-bold">Rs.{{ game.sale_price }}</span>
-                                <del class="text-muted small">Rs.{{ game.price }}</del>
+                            <div class="price-wrapper">
+                                <span class="sale-price">Rs.{{ game.sale_price }}</span>
+                                <span class="original-price">Rs.{{ game.price }}</span>
                             </div>
                             {% else %}
-                            <span class="fs-5 fw-bold">Rs.{{ game.price }}</span>
+                            <span class="current-price">Rs.{{ game.price }}</span>
                             {% endif %}
                         </div>
                     </div>
                     
-                    <div class="card-footer bg-transparent border-0">
-                        <a href="{% url 'game_details' game.id %}" 
-                           class="btn btn-primary w-100 d-flex align-items-center justify-content-between">
+                    <div class="card-actions">
+                        <a href="{% url 'game_details' game.id %}" class="details-button">
                             View Details
-                            <i class="fas fa-chevron-right ms-2"></i>
+                            <svg class="arrow-icon" viewBox="0 0 24 24">
+                                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                            </svg>
                         </a>
                     </div>
                 </div>
@@ -56,12 +58,14 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="empty-state text-center py-5">
-            <div class="empty-icon mb-4">
-                <i class="fas fa-gamepad fa-3x text-muted"></i>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <svg class="gamepad-icon" viewBox="0 0 24 24">
+                    <path d="M21 7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7zm-10 8H8v-2h3v-3h2v3h3v2h-3v3h-2v-3z"/>
+                </svg>
             </div>
-            <h3 class="h4">No games available yet</h3>
-            <p class="text-muted">Check back soon for new additions!</p>
+            <h3>Coming Soon!</h3>
+            <p>Exciting new games are on their way</p>
         </div>
         {% endif %}
     </div>
@@ -69,32 +73,34 @@
 
 <style>
     :root {
-        --primary-color: #2563eb;
-        --secondary-color: #3b82f6;
-        --text-color: #1f2937;
-        --background-color: #f8fafc;
-        --success-color: #10b981;
-        --danger-color: #ef4444;
+        --primary: #6366f1;
+        --secondary: #4f46e5;
+        --accent: #f59e0b;
+        --text: #1e293b;
+        --background: #f8fafc;
+        --success: #10b981;
+        --surface: #ffffff;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
-    .title h1 {
-        font-size: 3.5rem;
-        font-weight: 700;
-        letter-spacing: -0.025em;
-        margin-bottom: 1rem;
+    .game-section {
+        padding: 2rem 0;
     }
 
-    .title p {
-        font-size: 1.25rem;
-        opacity: 0.9;
+    .game-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+        padding: 1rem 0;
     }
 
     .game-card {
-        border: none;
-        border-radius: 1rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--surface);
+        border-radius: 16px;
         overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
+        box-shadow: var(--shadow);
     }
 
     .game-card:hover {
@@ -102,115 +108,155 @@
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
 
-    .card-img-top {
-        height: 250px;
+    .card-image {
+        position: relative;
+        overflow: hidden;
+        height: 200px;
+    }
+
+    .game-thumbnail {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
-        border-radius: 1rem 1rem 0 0;
         transition: transform 0.3s ease;
     }
 
-    .game-card:hover .card-img-top {
+    .game-card:hover .game-thumbnail {
         transform: scale(1.05);
     }
 
-    .card-body {
+    .card-content {
         padding: 1.5rem;
-        background: var(--background-color);
+    }
+
+    .game-meta {
+        margin-bottom: 0.75rem;
+    }
+
+    .genre-tag {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
     .game-title {
         font-size: 1.25rem;
         font-weight: 600;
-        color: var(--text-color);
-        margin-bottom: 0.5rem;
-    }
-
-    .game-category {
-        color: #64748b;
-        font-size: 0.875rem;
+        color: var(--text);
         margin-bottom: 1rem;
+        line-height: 1.3;
     }
 
     .price-container {
+        margin-top: auto;
+    }
+
+    .price-wrapper {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 0.75rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .original-price {
-        color: #94a3b8;
-        text-decoration: line-through;
-        font-size: 0.875rem;
-    }
-
-    .sale-price {
-        color: var(--success-color);
-        font-weight: 600;
-        font-size: 1.25rem;
     }
 
     .current-price {
-        color: var(--text-color);
-        font-weight: 600;
         font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text);
     }
 
-    .details {
-        padding: 1rem;
-        background: white;
+    .sale-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .original-price {
+        font-size: 0.9rem;
+        color: #64748b;
+        text-decoration: line-through;
+    }
+
+    .card-actions {
+        padding: 1rem 1.5rem;
         border-top: 1px solid #e2e8f0;
     }
 
-    .btn-details {
+    .details-button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         width: 100%;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--primary);
+        color: white;
+        border-radius: 8px;
         font-weight: 500;
         transition: all 0.2s ease;
-        background: #212529; 
-        border: none;
+        text-decoration: none;
     }
 
-    .btn-details:hover {
-        background: #343a40; 
-        transform: translateY(-2px);
+    .details-button:hover {
+        background: var(--secondary);
+        transform: translateY(-1px);
     }
-    
+
+    .arrow-icon {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+        margin-left: 0.5rem;
+    }
+
     .sale-badge {
         position: absolute;
         top: 1rem;
         right: 1rem;
-        background: var(--danger-color);
+        background: var(--accent);
         color: white;
-        padding: 0.25rem 0.75rem;
+        padding: 0.35rem 1rem;
         border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 500;
+        font-size: 0.8rem;
+        font-weight: 600;
         z-index: 10;
+        box-shadow: var(--shadow);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1rem;
+    }
+
+    .gamepad-icon {
+        width: 80px;
+        height: 80px;
+        fill: #cbd5e1;
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 0;
     }
 
     @media (max-width: 768px) {
-        .title h1 {
-            font-size: 2.5rem;
+        .game-grid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.5rem;
         }
 
-        .title p {
-            font-size: 1rem;
-        }
-
-        .row-cols-md-3 {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .card-img-top {
-            height: 200px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .row-cols-1 {
-            grid-template-columns: 1fr;
+        .card-image {
+            height: 180px;
         }
     }
 </style>

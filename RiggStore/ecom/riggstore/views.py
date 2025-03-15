@@ -612,37 +612,54 @@ def upload_game(request):
     try:
         customer = request.user.customer
         developer = Developer.objects.get(user=customer)
+        categories = Category.objects.all()
         
         if request.method == 'POST':
-            form = GameUploadForm(request.POST, request.FILES)
-            if form.is_valid():
-                # Process valid form
-                submission = form.save(commit=False)
-                submission.developer = developer
-                submission.status = 'pending'
+            try:
+                # Create GameSubmission instance
+                submission = GameSubmission(
+                    developer=developer,
+                    title=request.POST['title'],
+                    description=request.POST['description'],
+                    price=Decimal(request.POST['price']),
+                    version=request.POST['version'],
+                    min_os=request.POST['min_os'],
+                    min_processor=request.POST['min_processor'],
+                    min_ram=request.POST['min_ram'],
+                    min_gpu=request.POST['min_gpu'],
+                    min_directx=request.POST['min_directx'],
+                    rec_os=request.POST['rec_os'],
+                    rec_processor=request.POST['rec_processor'],
+                    rec_ram=request.POST['rec_ram'],
+                    rec_gpu=request.POST['rec_gpu'],
+                    rec_directx=request.POST['rec_directx'],
+                    game_file=request.FILES['game_file'],
+                    thumbnail=request.FILES['thumbnail'],
+                    trailer=request.FILES.get('trailer'),
+                )
                 submission.save()
                 
+                # Handle categories
+                category_ids = request.POST.getlist('categories')
+                submission.categories.set(category_ids)
 
-                try:
-                    price = Decimal(request.POST.get('price', '0.00'))
-                except InvalidOperation:
-                    price = Decimal('0.00')
-        
-                    submission = form.save(commit=False)
-                    submission.price = price
-                    submission.save()
                 # Handle screenshots
                 for file in request.FILES.getlist('screenshots'):
-                    GameScreenshot.objects.create(game=submission, image=file)
+                    GameScreenshot.objects.create(game_submission=submission, image=file)
 
                 messages.success(request, 'Game submitted for review!')
                 return redirect('developer_dashboard')
 
-            # Handle invalid form
-            messages.error(request, 'Please correct the errors below')
-            return render(request, 'upload_game.html', {'form': form})
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+                return render(request, 'upload_game.html', {
+                    'categories': categories,
+                    'form_data': request.POST
+                })
 
-        return render(request, 'upload_game.html', {'form': GameUploadForm()})
+        return render(request, 'upload_game.html', {
+            'categories': categories
+        })
 
     except (Customer.DoesNotExist, Developer.DoesNotExist) as e:
         messages.error(request, 'You need a developer account to upload games')
@@ -658,26 +675,18 @@ def delete_submission(request, submission_id):
         return redirect('admin_panel')
     return redirect('review_submissions')
 
-# Add admin approval view
-# views.py
-
 @login_required
 @user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def review_submissions(request):
-    submissions = GameSubmission.objects.filter(status='pending')
+    submissions = GameSubmission.objects.filter(status='pending').prefetch_related('categories')
     return render(request, 'admin/review_submissions.html', {'submissions': submissions})
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from .models import GameSubmission, Game, GameScreenshot
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def review_submission(request, submission_id):
     submission = get_object_or_404(
         GameSubmission.objects.select_related('developer__user')
-                            .prefetch_related('gamescreenshot_set'),
+                            .prefetch_related('categories', 'gamescreenshot_set'),
         id=submission_id
     )
 
@@ -688,13 +697,6 @@ def review_submission(request, submission_id):
         try:
             if action == 'approve':
                 if submission.status != 'approved':
-                    # Get or create a default category if none exists
-                    category, created = Category.objects.get_or_create(
-                        name='Default',
-                        defaults={'name': 'Default Category'}
-                    )
-
-                    # Create Game instance from submission
                     game = Game.objects.create(
                         name=submission.title,
                         description=submission.description,
@@ -702,11 +704,11 @@ def review_submission(request, submission_id):
                         price=submission.price,
                         image=submission.thumbnail,
                         approved=True,
-                        category=category,
-                        # Set default values for other required fields
                         sale_price=0.00,
                         is_on_sale=False
                     )
+                    # Set categories from submission
+                    game.categories.set(submission.categories.all())
                     
                     # Copy screenshots
                     for screenshot in submission.gamescreenshot_set.all():
@@ -714,8 +716,6 @@ def review_submission(request, submission_id):
 
                     submission.status = 'approved'
                     messages.success(request, 'Game approved and published!')
-                else:
-                    messages.warning(request, 'This submission is already approved.')
 
             elif action == 'reject':
                 submission.status = 'rejected'
@@ -726,14 +726,99 @@ def review_submission(request, submission_id):
             return redirect('review_submissions')
 
         except Exception as e:
-            messages.error(request, f'Error processing request: {str(e)}')
+            messages.error(request, f'Error: {str(e)}')
             return redirect('review_submissions')
 
-    context = {
+    return render(request, 'review_submission.html', {
         'submission': submission,
-        'can_edit': submission.status == 'pending' and request.user.is_staff
-    }
-    return render(request, 'review_submission.html', context)
+        'categories': submission.categories.all()
+    })
+
+
+@login_required
+def edit_submission(request, submission_id):
+    try:
+        customer = request.user.customer
+        developer = customer.developer
+        
+        # Get submission or return 404
+        submission = get_object_or_404(
+            GameSubmission,
+            id=submission_id,
+            developer=developer
+        )
+        
+        # Prevent editing approved submissions
+        if submission.status == 'approved':
+            messages.warning(request, "Approved submissions cannot be edited")
+            return redirect('developer_dashboard')
+
+        categories = Category.objects.all()
+
+        if request.method == 'POST':
+            try:
+                # Update basic fields
+                submission.title = request.POST.get('title', submission.title)
+                submission.description = request.POST.get('description', submission.description)
+                submission.price = Decimal(request.POST.get('price', submission.price))
+                submission.version = request.POST.get('version', submission.version)
+                
+                # Update system requirements
+                submission.min_os = request.POST.get('min_os', submission.min_os)
+                submission.min_processor = request.POST.get('min_processor', submission.min_processor)
+                submission.min_ram = request.POST.get('min_ram', submission.min_ram)
+                submission.min_gpu = request.POST.get('min_gpu', submission.min_gpu)
+                submission.min_directx = request.POST.get('min_directx', submission.min_directx)
+                submission.rec_os = request.POST.get('rec_os', submission.rec_os)
+                submission.rec_processor = request.POST.get('rec_processor', submission.rec_processor)
+                submission.rec_ram = request.POST.get('rec_ram', submission.rec_ram)
+                submission.rec_gpu = request.POST.get('rec_gpu', submission.rec_gpu)
+                submission.rec_directx = request.POST.get('rec_directx', submission.rec_directx)
+                
+                # Handle file updates
+                if 'thumbnail' in request.FILES:
+                    submission.thumbnail = request.FILES['thumbnail']
+                if 'game_file' in request.FILES:
+                    submission.game_file = request.FILES['game_file']
+                if 'trailer' in request.FILES:
+                    submission.trailer = request.FILES['trailer']
+                
+                # Update categories
+                category_ids = request.POST.getlist('categories')
+                submission.categories.set(category_ids)
+                
+                # Reset status if editing pending submission
+                if submission.status == 'rejected':
+                    submission.status = 'pending'
+                    submission.admin_notes = ""
+
+                submission.save()
+                
+                # Handle screenshots
+                if 'screenshots' in request.FILES:
+                    # Delete existing screenshots
+                    submission.gamescreenshot_set.all().delete()
+                    # Add new ones
+                    for file in request.FILES.getlist('screenshots'):
+                        GameScreenshot.objects.create(game_submission=submission, image=file)
+
+                messages.success(request, "Submission updated successfully!")
+                return redirect('developer_dashboard')
+
+            except Exception as e:
+                messages.error(request, f"Error updating submission: {str(e)}")
+
+        return render(request, 'edit_submission.html', {
+            'submission': submission,
+            'categories': categories
+        })
+
+    except Customer.DoesNotExist:
+        messages.error(request, "Customer profile not found")
+        return redirect('home')
+    except Developer.DoesNotExist:
+        messages.error(request, "Developer profile not found")
+        return redirect('home')
 # ======================
 # Miscellaneous Views
 # ======================
