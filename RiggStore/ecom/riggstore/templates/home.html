@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<header class="title">
+    <h1 class="display-4">Get Yourself a Game</h1>
+    <p class="lead">From heart-pounding shooters to mind-bending puzzles - find your perfect match in our ever-growing library</p>
+</header>
+
+<header class="title text-center mb-5">
+    <h1 class="display-4">Discover Your Next Favorite Game</h1>
+    <p class="lead">Explore our curated collection of hand-picked titles across all genres</p>
+</header>
+
+<section class="game-section py-4">
+    <div class="container">
+        {% if games %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+            {% for game in games %}
+            <div class="col">
+                <div class="card h-100 game-card shadow-sm">
+                    {% if game.is_on_sale %}
+                    <div class="sale-ribbon">SALE</div>
+                    {% endif %}
+                    
+                    <img src="{{ game.image.url }}" 
+                         class="card-img-top game-thumbnail" 
+                         alt="{{ game.name }}"
+                         loading="lazy">
+                    
+                    <div class="card-body d-flex flex-column">
+                        <div class="game-meta mb-2">
+                            <span class="badge bg-primary">{{ game.category.name }}</span>
+                            {% if game.approved %}
+                            <span class="badge bg-success">Verified</span>
+                            {% endif %}
+                        </div>
+                        
+                        <h3 class="game-title h5 mb-3">{{ game.name }}</h3>
+                        
+                        <div class="price-container mt-auto">
+                            {% if game.is_on_sale %}
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-danger fs-5 fw-bold">Rs.{{ game.sale_price }}</span>
+                                <del class="text-muted small">Rs.{{ game.price }}</del>
+                            </div>
+                            {% else %}
+                            <span class="fs-5 fw-bold">Rs.{{ game.price }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{% url 'game_details' game.id %}" 
+                           class="btn btn-primary w-100 d-flex align-items-center justify-content-between">
+                            View Details
+                            <i class="fas fa-chevron-right ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center py-5">
+            <div class="empty-icon mb-4">
+                <i class="fas fa-gamepad fa-3x text-muted"></i>
+            </div>
+            <h3 class="h4">No games available yet</h3>
+            <p class="text-muted">Check back soon for new additions!</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+    :root {
+        --primary-color: #2563eb;
+        --secondary-color: #3b82f6;
+        --text-color: #1f2937;
+        --background-color: #f8fafc;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+    }
+
+    .title h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        margin-bottom: 1rem;
+    }
+
+    .title p {
+        font-size: 1.25rem;
+        opacity: 0.9;
+    }
+
+    .game-card {
+        border: none;
+        border-radius: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .game-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-img-top {
+        height: 250px;
+        object-fit: cover;
+        border-radius: 1rem 1rem 0 0;
+        transition: transform 0.3s ease;
+    }
+
+    .game-card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+        background: var(--background-color);
+    }
+
+    .game-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .game-category {
+        color: #64748b;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    .price-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .original-price {
+        color: #94a3b8;
+        text-decoration: line-through;
+        font-size: 0.875rem;
+    }
+
+    .sale-price {
+        color: var(--success-color);
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+
+    .current-price {
+        color: var(--text-color);
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+
+    .details {
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .btn-details {
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        background: #212529; 
+        border: none;
+    }
+
+    .btn-details:hover {
+        background: #343a40; 
+        transform: translateY(-2px);
+    }
+    
+    .sale-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--danger-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        z-index: 10;
+    }
+
+    @media (max-width: 768px) {
+        .title h1 {
+            font-size: 2.5rem;
+        }
+
+        .title p {
+            font-size: 1rem;
+        }
+
+        .row-cols-md-3 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card-img-top {
+            height: 200px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .row-cols-1 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+{% endblock %}

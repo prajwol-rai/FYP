@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>Review Submission: {{ submission.title }}</h3>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+                <!-- Main Submission Details -->
+                <div class="col-md-8">
+                    <div class="mb-4">
+                        <h4>Game Details</h4>
+                        <dl class="row">
+                            <dt class="col-sm-3">Developer</dt>
+                            <dd class="col-sm-9">{{ submission.developer.user.user.username }}</dd>
+                            
+                            <dt class="col-sm-3">Version</dt>
+                            <dd class="col-sm-9">{{ submission.version }}</dd>
+                            
+                            <dt class="col-sm-3">Submitted</dt>
+                            <dd class="col-sm-9">{{ submission.submitted_at|date:"F j, Y H:i" }}</dd>
+                            
+                            <dt class="col-sm-3">Description</dt>
+                            <dd class="col-sm-9">{{ submission.description }}</dd>
+                        </dl>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4>System Requirements</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Minimum</h5>
+                                <ul class="list-unstyled">
+                                    <li><strong>OS:</strong> {{ submission.min_os }}</li>
+                                    <li><strong>Processor:</strong> {{ submission.min_processor }}</li>
+                                    <li><strong>RAM:</strong> {{ submission.min_ram }}</li>
+                                    <li><strong>GPU:</strong> {{ submission.min_gpu }}</li>
+                                    <li><strong>DirectX:</strong> {{ submission.min_directx }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Recommended</h5>
+                                <ul class="list-unstyled">
+                                    <li><strong>OS:</strong> {{ submission.rec_os }}</li>
+                                    <li><strong>Processor:</strong> {{ submission.rec_processor }}</li>
+                                    <li><strong>RAM:</strong> {{ submission.rec_ram }}</li>
+                                    <li><strong>GPU:</strong> {{ submission.rec_gpu }}</li>
+                                    <li><strong>DirectX:</strong> {{ submission.rec_directx }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar with Actions -->
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Review Actions</h5>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="admin_notes" class="form-label">Admin Notes</label>
+                                    <textarea class="form-control" id="admin_notes" name="notes" 
+                                              rows="4">{{ submission.admin_notes }}</textarea>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" name="approve" class="btn btn-success">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button type="submit" name="reject" class="btn btn-danger">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Files</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>Game File:</strong> 
+                                    <a href="{{ submission.game_file.url }}" target="_blank">
+                                        {{ submission.game_file.name }}
+                                    </a>
+                                </li>
+                                {% if submission.trailer %}
+                                <li class="list-group-item">
+                                    <strong>Trailer:</strong> 
+                                    <a href="{{ submission.trailer.url }}" target="_blank">
+                                        {{ submission.trailer.name }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screenshots Section -->
+            <div class="mt-4">
+                <h4>Screenshots</h4>
+                <div class="row row-cols-1 row-cols-md-3 g-4">
+                    {% for screenshot in screenshots %}
+                    <div class="col">
+                        <div class="card h-100">
+                            <img src="{{ screenshot.image.url }}" class="card-img-top" 
+                                 alt="Game screenshot" style="max-height: 200px; object-fit: cover;">
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">No screenshots available</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

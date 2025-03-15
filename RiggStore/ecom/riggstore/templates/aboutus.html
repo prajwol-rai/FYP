@@ -1,0 +1,197 @@
+{% extends 'base.html'%}
+{% load static %}
+{% block content %}
+
+<style>
+    :root {
+        --primary-color: #2563eb;
+        --secondary-color: #3b82f6;
+        --text-color: #1f2937;
+        --background-color: #f8fafc;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .about-hero {
+        padding: 8rem 0 6rem;
+        background: var(--background-color);
+        border-bottom: 1px solid #e2e8f0;
+        text-align: center;
+    }
+
+    .section-heading {
+        font-size: 2.75rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+        line-height: 1.2;
+    }
+
+    .section-subheading {
+        font-size: 1.25rem;
+        color: #64748b;
+        max-width: 800px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+    }
+
+    .value-card {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2.5rem 2rem;
+        box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.03);
+        transition: var(--transition);
+        border: 1px solid #f1f5f9;
+        height: 100%;
+    }
+
+    .value-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.08);
+        border-color: var(--primary-color);
+    }
+
+    .value-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 2rem;
+        color: white;
+        font-size: 1.75rem;
+        transition: var(--transition);
+    }
+
+    .value-card:hover .value-icon {
+        transform: rotate(-5deg) scale(1.05);
+    }
+
+    .team-member {
+        text-align: center;
+        padding: 2rem;
+        border-radius: 1.25rem;
+        transition: var(--transition);
+    }
+
+    .team-avatar {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 1.5rem;
+        border: 4px solid white;
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.1);
+        transition: var(--transition);
+    }
+
+    .team-member:hover .team-avatar {
+        transform: scale(1.05);
+        box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.15);
+    }
+
+    .team-member h4 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-color);
+    }
+
+    .team-member p {
+        color: #64748b;
+        margin-bottom: 0;
+    }
+
+    @media (max-width: 768px) {
+        .about-hero {
+            padding: 6rem 0 4rem;
+        }
+        
+        .section-heading {
+            font-size: 2.25rem;
+        }
+        
+        .section-subheading {
+            font-size: 1.1rem;
+            padding: 0 1rem;
+        }
+        
+        .value-card {
+            padding: 2rem 1.5rem;
+        }
+        
+        .team-avatar {
+            width: 140px;
+            height: 140px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .section-heading {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<section class="about-hero">
+    <div class="container">
+        <h1 class="section-heading">Connecting Gamers & Developers</h1>
+        <p class="section-subheading">
+            At Riggstore, we're building bridges between game creators and passionate players. 
+            Join our community-driven platform where ideas become reality and feedback shapes the future of gaming.
+        </p>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+                <h3>Player-Centric Platform</h3>
+                <p>Shape game development through direct feedback and community voting systems.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h3>Developer Tools</h3>
+                <p>Access real-time analytics, player insights, and community management features.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>Vibrant Community</h3>
+                <p>Join discussions, beta tests, and live Q&A sessions with developers.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container py-5">
+    <h2 class="section-heading text-center mb-5">HELLO</h2>
+    <div class="row g-4 justify-content-center">
+        <div class="col-md-3 col-sm-6">
+            <div class="team-member">
+                <img src="{% static 'images/ceo.jpg' %}" alt="CEO" class="team-avatar">
+                <h4>Prajwol Rai</h4>
+                <p>I love to game</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

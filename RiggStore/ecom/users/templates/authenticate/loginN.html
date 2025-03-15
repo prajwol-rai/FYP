@@ -1,0 +1,27 @@
+{% extends 'base.html'%}
+{% load static %}
+{%  block content%}
+
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="left-panel" style="margin-left: 80px">
+            <img src="{% static '/images/signupimg.png' %}" alt="store image" />
+        </div>
+        <div class="right-panel" style="margin-right: 80px">
+            <h2>Sign Up</h2>
+            <form id="signup-form" method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <input type="checkbox" name="remember_me" id="remember_me">
+                <label for="remember_me">Remember Me</label>
+                <button class="button" type="submit">Register</button>
+
+                <div class="login-link">
+                    <p>Already have an account? <a href="{% url 'login' %}">Log In</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+{% endblock %}

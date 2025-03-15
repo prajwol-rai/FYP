@@ -1,0 +1,496 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --background: #f8fafc;
+            --text: #1e293b;
+            --modal-bg: rgba(255, 255, 255, 0.95);
+            --card-bg: #ffffff;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --border-radius: 16px;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --blur: blur(12px);
+        }
+
+        /* Base Styles */
+        body {
+            background: var(--background);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            line-height: 1.6;
+        }
+
+        .community-container {
+            max-width: 1600px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Header Section */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding: 1rem 0;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1e293b;  
+            margin: 0;
+        }
+
+        .community-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 0;
+        }
+
+        .community-card {
+            margin: 0.5rem;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            width: 100%; 
+            text-align: justify;
+        }
+
+        .community-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .community-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur);
+            z-index: -1;
+        }
+
+        .community-title {
+            font-size: 1.375rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+
+        .community-description {
+            color: #64748b;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-info {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-info:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--modal-bg);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            transform: scale(0.95);
+            animation: modalScaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes modalScaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            background: linear-gradient(to right, var(--primary), #8b5cf6);
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close {
+            font-size: 1.75rem;
+            color: #94a3b8;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: var(--primary);
+            transform: rotate(90deg);
+        }
+
+        /* Form Elements */
+        .modal-form .form-group {
+            margin-bottom: 1.75rem;
+        }
+
+        .modal-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .modal-form input,
+        .modal-form textarea {
+            width: 100%;
+            padding: 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .modal-form input:focus,
+        .modal-form textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.75rem;
+            }
+
+            .community-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .community-container {
+                padding: 0 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-content {
+                width: 95%;
+            }
+        }
+
+        /* Utility Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+
+    <div class="community-container">
+        <!-- Your Joined Communities -->
+        {% if user.is_authenticated %}
+        <section class="communities-list">
+            <div class="header-section">
+                <h2 class="section-title">Joined Communities</h2>
+            </div>
+            
+            <div class="community-grid">
+                {% for community in joined_communities %}
+                <article class="community-card">
+                    <div class="card-content">
+                        <h3 class="community-title">{{ community.name }}</h3>
+                        <p class="community-description">{{ community.description }}</p>
+                        <div class="community-meta">
+                            <small>{{ community.members.count }} members · {{ community.post_set.count }} posts</small>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'community_detail' community.id %}" class="btn btn-info">
+                            <span>View</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-users-slash"></i>
+                    <p>You haven't joined any communities yet. Explore below!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Discover Communities Section -->
+        <section class="communities-list">
+            <div class="header-section">
+                <h2 class="section-title">Discover Communities</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus"></i> Create Community
+                </button>
+            </div>
+            
+            <div class="community-grid">
+                {% for community in discover_communities %}
+                <article class="community-card">
+                    <div class="card-content">
+                        <h3 class="community-title">{{ community.name }}</h3>
+                        <p class="community-description">{{ community.description }}</p>
+                        <div class="community-meta">
+                            <small>{{ community.members.count }} members · {{ community.post_set.count }} posts</small>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'community_detail' community.id %}" class="btn btn-info">
+                            <span>View</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="empty-state">
+                    {% if user.is_authenticated %}
+                        <i class="fas fa-compass"></i>
+                        <p>No new communities to discover. Why not create one?</p>
+                    {% else %}
+                        <i class="fas fa-users"></i>
+                        <p>No communities found. Be the first to create one!</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Create Community Modal -->
+        <div id="createModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="section-title">Create community</h2>
+                    <span class="close" onclick="closeCreateModal()">&times;</span>
+                </div>
+                <form id="create-community-form" onsubmit="createCommunity(event)" class="modal-form">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="id_name">Community Name</label>
+                            {{ community_form.name }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_description">Description</label>
+                            {{ community_form.description }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Community</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<!-- Include SweetAlert library -->
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+<script>
+    // Handles the response from fetch requests
+    const handleResponse = async (response) => {
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Request failed');
+        }
+        return response.json();
+    };
+
+    // Handles the joining of a community
+    document.querySelectorAll('.join-community-list').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            try {
+                const button = e.target;
+                button.classList.add('button-animate');
+                
+                const communityId = button.dataset.communityId;
+                const response = await fetch(`/community/${communityId}/join/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await handleResponse(response);
+                if (data.success) {
+                    // Toast notification
+                    const toast = document.createElement('div');
+                    toast.className = `join-toast ${data.joined ? 'join' : 'leave'}`;
+                    toast.textContent = data.joined ? 'Joined community!' : 'Left community';
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => toast.style.display = 'block', 10);
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+
+                    // Update button and count
+                    button.textContent = data.joined ? 'Leave' : 'Join';
+                    button.classList.toggle('btn-success', !data.joined);
+                    button.classList.toggle('btn-danger', data.joined);
+                    
+                    const meta = button.closest('.community-card').querySelector('.community-meta small');
+                    meta.textContent = `${data.member_count} members · ${meta.textContent.split('·')[1]}`;
+                }
+                
+                setTimeout(() => button.classList.remove('button-animate'), 300);
+                
+            } catch (error) {
+                console.error('Join community error:', error);
+                alert('Error: ' + error.message);
+            }
+        });
+    });
+
+    // Modal functions
+    function openCreateModal() {
+        document.getElementById('createModal').style.display = 'block';
+    }
+
+    function closeCreateModal() {
+        document.getElementById('createModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('createModal');
+        if (event.target == modal) {
+            closeCreateModal();
+        }
+    }
+
+    // AJAX form submission for creating a community
+    function createCommunity(event) {
+        event.preventDefault();
+        const form = document.getElementById('create-community-form');
+        const formData = new FormData(form);
+        
+        fetch("{% url 'create_community' %}", {
+            method: "POST",
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success){
+                swal("Success", "Community '" + data.community_name + "' created successfully!", "success")
+                    .then(() => {
+                        closeCreateModal();
+                        location.reload();
+                    });
+            } else {
+                // Handle both 'error' and 'errors' from the server
+                const errorMessage = data.error || JSON.stringify(data.errors);
+                swal("Error", `Error creating community: ${errorMessage}`, "error");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            swal("Error", "An unexpected error occurred. Please try again.", "error");
+        });
+    }
+</script>
+
+{% endblock %}
