@@ -23,4 +23,3 @@ class GameSubmissionAdmin(admin.ModelAdmin):
 @admin.register(GameScreenshot)
 class GameScreenshotAdmin(admin.ModelAdmin):
     list_display = ('game_submission', 'image')  # Corrected field name
-

@@ -34,23 +34,18 @@
                                 </time>
                             </div>
                             
-                            <div class="submission-actions">
-                                <span class="status-badge {{ submission.status }}">
-                                    {{ submission.get_status_display }}
-                                </span>
-                                <div class="action-buttons">
-                                    <a href="{% url 'edit_submission' submission.id %}" 
-                                       class="edit-btn">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </a>
-                                    <form method="POST" action="{% url 'delete_submission' submission.id %}">
-                                        {% csrf_token %}
-                                        <button type="submit" class="delete-btn"
-                                                onclick="return confirm('Permanently delete this submission?')">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                            <div class="action-buttons">
+                                <a href="{% url 'edit_submission' submission.id %}" 
+                                   class="edit-btn">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <form method="POST" action="{% url 'delete_submission' submission.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="delete-btn"
+                                            onclick="return confirm('Permanently delete this submission?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

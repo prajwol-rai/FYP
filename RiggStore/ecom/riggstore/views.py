@@ -734,47 +734,38 @@ def review_submission(request, submission_id):
         'categories': submission.categories.all()
     })
 
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from decimal import Decimal
 
 @login_required
 def edit_submission(request, submission_id):
     try:
         customer = request.user.customer
         developer = customer.developer
-        
-        # Get submission or return 404
-        submission = get_object_or_404(
-            GameSubmission,
-            id=submission_id,
-            developer=developer
-        )
-        
-        # Prevent editing approved submissions
-        if submission.status == 'approved':
-            messages.warning(request, "Approved submissions cannot be edited")
-            return redirect('developer_dashboard')
-
+        submission = get_object_or_404(GameSubmission, id=submission_id, developer=developer)
         categories = Category.objects.all()
 
         if request.method == 'POST':
             try:
-                # Update basic fields
-                submission.title = request.POST.get('title', submission.title)
-                submission.description = request.POST.get('description', submission.description)
-                submission.price = Decimal(request.POST.get('price', submission.price))
-                submission.version = request.POST.get('version', submission.version)
+                # Update text fields
+                submission.title = request.POST['title']
+                submission.description = request.POST['description']
+                submission.price = Decimal(request.POST['price'])
+                submission.version = request.POST['version']
                 
                 # Update system requirements
-                submission.min_os = request.POST.get('min_os', submission.min_os)
-                submission.min_processor = request.POST.get('min_processor', submission.min_processor)
-                submission.min_ram = request.POST.get('min_ram', submission.min_ram)
-                submission.min_gpu = request.POST.get('min_gpu', submission.min_gpu)
-                submission.min_directx = request.POST.get('min_directx', submission.min_directx)
-                submission.rec_os = request.POST.get('rec_os', submission.rec_os)
-                submission.rec_processor = request.POST.get('rec_processor', submission.rec_processor)
-                submission.rec_ram = request.POST.get('rec_ram', submission.rec_ram)
-                submission.rec_gpu = request.POST.get('rec_gpu', submission.rec_gpu)
-                submission.rec_directx = request.POST.get('rec_directx', submission.rec_directx)
-                
+                submission.min_os = request.POST['min_os']
+                submission.min_processor = request.POST['min_processor']
+                submission.min_ram = request.POST['min_ram']
+                submission.min_gpu = request.POST['min_gpu']
+                submission.min_directx = request.POST['min_directx']
+                submission.rec_os = request.POST['rec_os']
+                submission.rec_processor = request.POST['rec_processor']
+                submission.rec_ram = request.POST['rec_ram']
+                submission.rec_gpu = request.POST['rec_gpu']
+                submission.rec_directx = request.POST['rec_directx']
+
                 # Handle file updates
                 if 'thumbnail' in request.FILES:
                     submission.thumbnail = request.FILES['thumbnail']
@@ -782,42 +773,58 @@ def edit_submission(request, submission_id):
                     submission.game_file = request.FILES['game_file']
                 if 'trailer' in request.FILES:
                     submission.trailer = request.FILES['trailer']
-                
+
                 # Update categories
                 category_ids = request.POST.getlist('categories')
                 submission.categories.set(category_ids)
-                
-                # Reset status if editing pending submission
-                if submission.status == 'rejected':
-                    submission.status = 'pending'
-                    submission.admin_notes = ""
 
-                submission.save()
-                
+                # Handle status changes
+                if submission.status == 'approved':
+                    submission.status = 'pending'
+                    messages.info(request, "Resubmitted for approval after edits")
+
                 # Handle screenshots
                 if 'screenshots' in request.FILES:
-                    # Delete existing screenshots
                     submission.gamescreenshot_set.all().delete()
-                    # Add new ones
                     for file in request.FILES.getlist('screenshots'):
                         GameScreenshot.objects.create(game_submission=submission, image=file)
 
+                submission.save()
                 messages.success(request, "Submission updated successfully!")
                 return redirect('developer_dashboard')
 
             except Exception as e:
                 messages.error(request, f"Error updating submission: {str(e)}")
+                return render(request, 'edit_submission.html', {
+                    'submission': submission,
+                    'categories': categories
+                })
 
         return render(request, 'edit_submission.html', {
             'submission': submission,
             'categories': categories
         })
 
-    except Customer.DoesNotExist:
-        messages.error(request, "Customer profile not found")
+    except (Customer.DoesNotExist, Developer.DoesNotExist):
+        messages.error(request, "Authorization failed")
         return redirect('home')
-    except Developer.DoesNotExist:
-        messages.error(request, "Developer profile not found")
+
+@login_required
+def delete_submission(request, submission_id):
+    try:
+        customer = request.user.customer
+        developer = customer.developer
+        submission = get_object_or_404(GameSubmission, id=submission_id, developer=developer)
+        
+        if request.method == 'POST':
+            submission.delete()
+            messages.success(request, "Submission deleted successfully")
+            return redirect('developer_dashboard')
+        
+        return redirect('developer_dashboard')
+
+    except (Customer.DoesNotExist, Developer.DoesNotExist):
+        messages.error(request, "Authorization failed")
         return redirect('home')
 # ======================
 # Miscellaneous Views

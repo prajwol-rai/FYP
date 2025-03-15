@@ -47,6 +47,7 @@ class Developer(models.Model):
 # ======================
 
 class Game(models.Model):
+    
     name = models.CharField(max_length=100)
     categories = models.ManyToManyField(Category)  
     price = models.DecimalField(default=0, decimal_places=2, max_digits=6)

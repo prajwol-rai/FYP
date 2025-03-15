@@ -179,4 +179,25 @@
         </div>
     </form>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File input labels
+        const fileInputs = document.querySelectorAll('.custom-file-input');
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+                const label = this.nextElementSibling;
+                label.textContent = fileName;
+            });
+        });
+    
+        // Price validation
+        const priceInput = document.getElementById('id_price');
+        priceInput.addEventListener('input', function(e) {
+            const value = parseFloat(e.target.value);
+            if (value < 0) e.target.value = 0;
+        });
+    });
+    </script>
 {% endblock %}
