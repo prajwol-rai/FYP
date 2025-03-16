@@ -6,65 +6,89 @@
 {% block content %}
 <section class="game-details-section py-5">
   <div class="container">
-    <!-- Header Section -->
-    <header class="game-header text-center mb-5">
-      <h1 class="game-title">{{ game.name }}</h1>
-      <p class="game-category">{{ game.category.name }}</p>
-      <div class="price-box">
-        <span class="price-label">Price:</span>
-        <span class="game-price">Rs. {{ game.price|floatformat:2 }}</span>
+    <!-- Game Header -->
+    <div class="game-header card border-0 shadow-lg mb-5">
+      <div class="card-body text-center">
+        <h1 class="display-4 fw-bold text-dark mb-3">{{ game.name }}</h1>
+        
+        <div class="price-display fs-1 fw-bold text-success mb-4">
+          Rs. {{ game.price|floatformat:2 }}
+          {% if game.is_on_sale %}
+            <span class="text-danger fs-4 ms-2"><del>Rs. {{ game.sale_price|floatformat:2 }}</del></span>
+          {% endif %}
+        </div>
+        <div class="meta-info row g-3">
+          <div class="col-md-4">
+            <div class="info-item bg-light p-3 rounded">
+              Version {{ game.submission.version }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-item bg-light p-3 rounded">
+              {{ game.submission.file_size|filesizeformat }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-item bg-light p-3 rounded">
+              Released {{ game.submission.submitted_at|date:"M Y" }}
+            </div>
+          </div>
+        </div>
       </div>
-    </header>
+    </div>
 
-    <div class="row game-info">
-      <!-- Left Column: Media, Description, System Requirements -->
+    <!-- Main Content -->
+    <div class="row g-5">
+      <!-- Left Column -->
       <div class="col-lg-8">
-        <!-- Screenshots Carousel -->
-        <div class="game-media mb-4">
-          <h4 class="section-subtitle">Screenshots</h4>
-          <div class="screenshots-carousel">
-            {% if game.gamescreenshot_set.all %}
-              {% for screenshot in game.gamescreenshot_set.all %}
-                <div class="screenshot">
-                  <img src="{{ screenshot.image.url }}" alt="Screenshot" class="img-fluid">
-                </div>
-              {% endfor %}
-            {% else %}
-              <p class="text-muted">No screenshots available.</p>
-            {% endif %}
+        <!-- Screenshots -->
+        <div class="screenshots-section mb-5">
+          <div class="screenshots-grid">
+            {% for screenshot in game.submission.gamescreenshot_set.all %}
+              <div class="screenshot-item">
+                <img src="{{ screenshot.image.url }}" class="img-fluid rounded-3" alt="Game screenshot">
+              </div>
+            {% endfor %}
           </div>
         </div>
 
+        <div class="badge bg-primary text-white mb-3">
+            {% for category in game.categories.all %}
+              {{ category.name }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+
         <!-- Game Description -->
-        <div class="game-description mb-4">
-          <h4 class="section-subtitle">About the Game</h4>
-          <p>{{ game.description|linebreaks }}</p>
+        <div class="description-section mb-5">
+          <div class="description-content bg-light p-4 rounded-3">
+            {{ game.description|linebreaks }}
+          </div>
         </div>
 
         <!-- System Requirements -->
-        <div class="system-requirements mb-4">
-          <h4 class="section-subtitle">System Requirements</h4>
-          <div class="row">
+        <div class="requirements-section mb-5">
+          <h4 class="text-dark mb-3"><i class=""></i>System Requirements</h4>
+          <div class="row g-4">
             <div class="col-md-6">
-              <div class="requirements-card">
-                <h5>Minimum</h5>
-                <ul class="requirements-list">
+              <div class="requirements-card bg-light text-dark p-4 rounded-3">
+                <h5 class="text-dark mb-3"><i class="fas fa-microchip me-2"></i>Minimum</h5>
+                <ul class="requirements-list list-unstyled">
                   <li><strong>OS:</strong> {{ game.submission.min_os }}</li>
                   <li><strong>Processor:</strong> {{ game.submission.min_processor }}</li>
                   <li><strong>Memory:</strong> {{ game.submission.min_ram }} RAM</li>
-                  <li><strong>GPU:</strong> {{ game.submission.min_gpu }}</li>
+                  <li><strong>Graphics:</strong> {{ game.submission.min_gpu }}</li>
                   <li><strong>DirectX:</strong> {{ game.submission.min_directx }}</li>
                 </ul>
               </div>
             </div>
             <div class="col-md-6">
-              <div class="requirements-card">
-                <h5>Recommended</h5>
-                <ul class="requirements-list">
+              <div class="requirements-card bg-light text-dark p-4 rounded-3">
+                <h5 class="text-dark mb-3"><i class="fas fa-rocket me-2"></i>Recommended</h5>
+                <ul class="requirements-list list-unstyled">
                   <li><strong>OS:</strong> {{ game.submission.rec_os }}</li>
                   <li><strong>Processor:</strong> {{ game.submission.rec_processor }}</li>
                   <li><strong>Memory:</strong> {{ game.submission.rec_ram }} RAM</li>
-                  <li><strong>GPU:</strong> {{ game.submission.rec_gpu }}</li>
+                  <li><strong>Graphics:</strong> {{ game.submission.rec_gpu }}</li>
                   <li><strong>DirectX:</strong> {{ game.submission.rec_directx }}</li>
                 </ul>
               </div>
@@ -73,23 +97,69 @@
         </div>
       </div>
 
-      <!-- Right Column: Developer Info and Buy Button -->
+      <!-- Right Column -->
       <div class="col-lg-4">
-        <!-- Developer Card -->
-        <div class="developer-info card mb-4">
+        <!-- Developer Info -->
+        <div class="developer-section card border-0 shadow-lg mb-4">
           <div class="card-body text-center">
-            <img src="{{ game.developer.user.image.url }}" alt="{{ game.developer.user.get_full_name }}" class="developer-avatar">
-            <h5 class="mt-3">{{ game.developer.user.get_full_name }}</h5>
+            <div class="developer-avatar mb-3">
+              <img src="{{ game.developer.user.image.url }}" 
+                   class="rounded-circle shadow" 
+                   width="120" 
+                   alt="{{ game.developer.user.get_full_name }}">
+            </div>
+            <h3 class="h5 mb-2">{{ game.developer.user.get_full_name }}</h3>
             {% if game.developer.company_name %}
-              <p class="text-muted">{{ game.developer.company_name }}</p>
+              <p class="text-muted mb-3">{{ game.developer.company_name }}</p>
             {% endif %}
+            <div class="developer-meta text-start">
+              <div class="meta-item mb-2">
+                <i class="fas fa-envelope me-2"></i>{{ game.developer.user.email }}
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-check-circle me-2 text-success"></i>
+                Verified Developer
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Buy Now Button -->
-        <div class="buy-section text-center">
-          <button class="btn btn-success btn-lg buy-now-btn">
-            <i class="fas fa-shopping-cart"></i> Buy Now - Rs. {{ game.price|floatformat:2 }}
-          </button>
+
+        <!-- Purchase Section -->
+        <div class="purchase-section card border-0 shadow-lg">
+          <div class="card-body text-center">
+            <div class="d-grid gap-3">
+              <button class="btn btn-lg" style="background-color: #212529; color: white;">
+                <i class="fas fa-shopping-cart me-2"></i>
+                Buy Now - Rs. {{ game.price|floatformat:2 }}
+              </button>
+              {% if game.submission.trailer %}
+                <a href="{{ game.submission.trailer.url }}" 
+                   class="btn btn-outline-dark btn-lg py-3"
+                   target="_blank" style="color: #212529;">
+                  <i class="fas fa-play-circle me-2"></i>
+                  Watch Trailer
+                </a>
+              {% endif %}
+            </div>
+            <hr class="my-4">
+            <div class="file-info text-start">
+              <h5 class="mb-3"><i class="fas fa-file-archive me-2"></i>File Information</h5>
+              <ul class="list-unstyled">
+                <li class="mb-2">
+                  <i class="fas fa-file-alt me-2"></i>
+                  Format: {{ game.submission.game_file.name|slice:"-3:"|upper }}
+                </li>
+                <li class="mb-2">
+                  <i class="fas fa-hdd me-2"></i>
+                  Size: {{ game.submission.file_size|filesizeformat }}
+                </li>
+                <li>
+                  <i class="fas fa-code-branch me-2"></i>
+                  Version: {{ game.submission.version }}
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -97,123 +167,214 @@
 </section>
 
 <style>
-  /* Base Styles */
-  .game-details-section {
-    background-color: #f8f9fa;
-    padding: 60px 0;
-  }
-  .container {
-    max-width: 1200px;
-  }
-  .game-header {
-    margin-bottom: 40px;
-  }
-  .game-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 10px;
-  }
-  .game-category {
-    font-size: 1.2rem;
-    color: #7f8c8d;
-    margin-bottom: 20px;
-  }
-  .price-box {
-    font-size: 1.5rem;
-    color: #27ae60;
-  }
-  .price-label {
-    font-weight: 500;
-    margin-right: 8px;
-  }
-  /* Game Info Layout */
-  .game-info {
-    margin-top: 20px;
-  }
-  .section-subtitle {
-    font-size: 1.5rem;
-    color: #34495e;
-    margin-bottom: 15px;
-  }
-  /* Screenshots Carousel */
-  .screenshots-carousel {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding: 10px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-  .screenshots-carousel .screenshot {
-    flex: 0 0 auto;
-    width: 250px;
-  }
-  .screenshots-carousel .screenshot img {
-    width: 100%;
-    border-radius: 6px;
-  }
-  /* System Requirements */
-  .system-requirements .requirements-card {
-    background: #fff;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    margin-bottom: 15px;
-  }
-  .requirements-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .requirements-list li {
-    padding: 5px 0;
-    font-size: 1rem;
-    color: #2c3e50;
-  }
-  /* Developer Card */
-  .developer-info {
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .developer-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid #27ae60;
-  }
-  /* Buy Button */
-  .buy-section button.buy-now-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 1.2rem;
-    border-radius: 8px;
-    background-color: #27ae60;
-    border: none;
-    color: #fff;
-    transition: background-color 0.3s ease;
-  }
-  .buy-section button.buy-now-btn:hover {
-    background-color: #1e8449;
-  }
-  /* Responsive Adjustments */
-  @media (max-width: 767px) {
-    .game-title {
-      font-size: 2rem;
+    /* Enhanced CSS with existing color scheme */
+    .game-details-section {
+      background: white;
+      padding: 2rem 0;
     }
-    .price-box {
-      font-size: 1.3rem;
+  
+    .game-header {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .screenshots-carousel .screenshot {
-      width: 200px;
+  
+    .game-header:hover {
+      transform: translateY(-2px);
     }
+  
+    .price-display {
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  
+    .meta-info .info-item {
+      border: 1px solid rgba(33,37,41,0.1);
+      transition: all 0.2s ease;
+    }
+  
+    .meta-info .info-item:hover {
+      background-color: rgba(33,37,41,0.03);
+      transform: translateY(-2px);
+    }
+  
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+  
+    .screenshot-item {
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+  
+    .screenshot-item::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.03);
+      transition: opacity 0.3s ease;
+    }
+  
+    .screenshot-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+  
+    .screenshot-item:hover::after {
+      opacity: 0;
+    }
+  
+    .description-content {
+      border: 1px solid rgba(33,37,41,0.1);
+      line-height: 1.7;
+      font-size: 1.05rem;
+    }
+  
+    .requirements-section h4 {
+      font-weight: 600;
+      margin-bottom: 2rem;
+      position: relative;
+      padding-left: 1.5rem;
+    }
+  
+    .requirements-section h4::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 24px;
+      width: 4px;
+      background-color: #212529;
+    }
+  
+    .requirements-card {
+      border: 1px solid rgba(33,37,41,0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+  
+    .requirements-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background-color: #212529;
+    }
+  
+    .requirements-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+  
+    .requirements-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(33,37,41,0.05);
+      display: flex;
+      justify-content: space-between;
+    }
+  
+    .requirements-list li:last-child {
+      border-bottom: 0;
+    }
+  
+    .requirements-list strong {
+      color: rgba(33,37,41,0.9);
+      margin-right: 1rem;
+    }
+  
+    .developer-section {
+      transition: all 0.3s ease;
+      position: relative;
+    }
+  
+    .developer-section:hover {
+      transform: translateY(-3px);
+    }
+  
     .developer-avatar {
-      width: 80px;
-      height: 80px;
+      transition: transform 0.3s ease;
     }
-  }
+  
+    .developer-section:hover .developer-avatar {
+      transform: scale(1.05);
+    }
+  
+    .purchase-section .btn {
+      border-radius: 8px;
+      padding: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  
+    .purchase-section .btn::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.1) 50%, transparent 75%);
+      background-size: 400% 400%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+  
+    .purchase-section .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+  
+    .purchase-section .btn:hover::after {
+      opacity: 1;
+      animation: shine 1.5s linear infinite;
+    }
+  
+    @keyframes shine {
+      0% { background-position: 100% 50%; }
+      100% { background-position: -100% 50%; }
+    }
+  
+    .file-info h5 {
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+  
+    .file-info li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+    }
+  
+    @media (max-width: 768px) {
+      .game-header .display-4 {
+        font-size: 2.25rem;
+      }
+  
+      .screenshots-grid {
+        grid-template-columns: 1fr;
+      }
+  
+      .requirements-section .col-md-6 {
+        margin-bottom: 1.5rem;
+      }
+    }
 </style>
+
 {% endblock %}

@@ -584,9 +584,16 @@ def admin_delete_community(request, community_id):
 # ======================
 
 # Render the details of a specific game.
+
 def game_detail(request, game_id):
+    # Retrieve the game object by its ID
     game = get_object_or_404(Game, id=game_id)
-    return render(request, 'game_details.html', {'game': game})
+
+    # Pass the game object to the template
+    context = {
+        'game': game,
+    }
+    return render(request, 'game_details.html', context)
 
 @login_required
 def developer_dashboard(request):
