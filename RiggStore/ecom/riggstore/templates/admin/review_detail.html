@@ -61,7 +61,7 @@
                     <div class="card mb-3">
                         <div class="card-body">
                             <h5 class="card-title">Review Actions</h5>
-                            <form method="POST">
+                            <form id="review-form" method="POST">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="admin_notes" class="form-label">Admin Notes</label>
@@ -69,10 +69,10 @@
                                               rows="4">{{ submission.admin_notes }}</textarea>
                                 </div>
                                 <div class="d-grid gap-2">
-                                    <button type="submit" name="approve" class="btn btn-success">
+                                    <button type="button" name="approve" class="btn btn-success action-btn" data-action="approve">
                                         <i class="fas fa-check"></i> Approve
                                     </button>
-                                    <button type="submit" name="reject" class="btn btn-danger">
+                                    <button type="button" name="reject" class="btn btn-danger action-btn" data-action="reject">
                                         <i class="fas fa-times"></i> Reject
                                     </button>
                                 </div>
@@ -125,4 +125,46 @@
         </div>
     </div>
 </div>
+
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script>
+    // Wait until the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('review-form');
+        const actionButtons = document.querySelectorAll('.action-btn');
+        
+        actionButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const action = button.getAttribute('data-action');
+                const confirmText = action === 'approve'
+                    ? "Are you sure you want to approve this submission?"
+                    : "Are you sure you want to reject this submission?";
+                
+                // Show confirmation dialog using SweetAlert
+                swal({
+                    title: "Confirm " + (action === 'approve' ? "Approval" : "Rejection"),
+                    text: confirmText,
+                    icon: "warning",
+                    buttons: true,
+                    dangerMode: (action === 'reject')
+                })
+                .then((willConfirm) => {
+                    if (willConfirm) {
+                        // Add a hidden input to indicate which action was taken
+                        let hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = action;
+                        hiddenInput.value = '1';
+                        form.appendChild(hiddenInput);
+                        
+                        // Submit the form
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+
 {% endblock %}
+

@@ -41,7 +41,7 @@ urlpatterns = [
     path('delete-submission/<int:submission_id>/', views.delete_submission, name='delete_submission'),
 
     # Game Management
-    path('game/<int:game_id>/', views.game_detail, name='game_details'),
+    path('game/<int:game_id>/', views.game_details, name='game_details'),
     path('upload-game/', views.upload_game, name='upload_game'),
     path('review-submissions/', views.review_submissions, name='review_submissions'),
     path('review-submission/<int:submission_id>/', views.review_submission, name='review_submission'),

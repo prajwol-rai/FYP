@@ -47,7 +47,14 @@ class Developer(models.Model):
 # ======================
 
 class Game(models.Model):
-    
+
+    submission = models.OneToOneField(  # Add this field
+        'GameSubmission',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='published_game'
+    )
     name = models.CharField(max_length=100)
     categories = models.ManyToManyField(Category)  
     price = models.DecimalField(default=0, decimal_places=2, max_digits=6)
@@ -57,6 +64,11 @@ class Game(models.Model):
     is_on_sale = models.BooleanField(default=False)
     developer = models.ForeignKey(Developer, on_delete=models.CASCADE)
     approved = models.BooleanField(default=False)
+
+    def delete(self, *args, **kwargs):
+        # Delete associated image file
+        self.image.delete(save=False)
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -170,6 +182,14 @@ class GameSubmission(models.Model):
 
     file_size = models.PositiveIntegerField(null=True, blank=True)  # Automatically stored
 
+    def delete(self, *args, **kwargs):
+        # Delete associated files
+        self.game_file.delete(save=False)
+        self.thumbnail.delete(save=False)
+        if self.trailer:
+            self.trailer.delete(save=False)
+        super().delete(*args, **kwargs)
+
     def save(self, *args, **kwargs):
         if self.game_file:
             self.file_size = self.game_file.size
@@ -185,8 +205,13 @@ class GameScreenshot(models.Model):
         on_delete=models.CASCADE,
         null=True,  # Allows existing records to be updated
         blank=True  
+        
     )
     image = models.ImageField(upload_to='screenshots/')
+
+    def delete(self, *args, **kwargs):
+        self.image.delete(save=False)
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"Screenshot for {self.game_submission.title if self.game_submission else 'Unassigned'}"

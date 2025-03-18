@@ -2,9 +2,6 @@
 {% load static %}
 
 {% block content %}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
 <section class="game-store bg-light">
     <header class="store-header py-5">
         <div class="container">
@@ -13,66 +10,65 @@
                 <p class="lead text-muted">Explore our curated collection of premium titles</p>
             </div>
 
-            <!-- Search and Filters -->
+            <!-- Search and Filters Form -->
             <form method="GET" action="{% url 'game_list' %}">
                 <div class="row justify-content-center mb-4">
                     <div class="col-lg-8">
-                        <!-- Search Bar -->
                         <div class="input-group shadow-sm mb-4">
                             <input type="text" 
                                    class="form-control bg-white border-0 py-3" 
                                    placeholder="Search games..." 
                                    name="q"
-                                   value="{{ search_query|default:'' }}">
+                                   value="{{ search_query }}">
                             <button class="btn btn-dark px-4" type="submit">
                                 <i class="bi bi-search"></i>
                             </button>
                         </div>
 
-                        <!-- Filters -->
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <!-- Category Filter Dropdown -->
                             <div class="dropdown">
                                 <button class="btn btn-dark dropdown-toggle" type="button" 
                                         id="categoryDropdown" data-bs-toggle="dropdown"
                                         aria-expanded="false">
                                     Categories
-                                    {% if selected_categories %}
-                                    <span class="badge bg-light text-dark ms-2">
-                                        {{ selected_categories|length }}
-                                    </span>
-                                    {% endif %}
+                                    {% if selected_categories %}({{ selected_categories|length }}){% endif %}
                                 </button>
-                                <ul class="dropdown-menu p-3" style="width: 300px;">
-                                    {% for category in categories %}
-                                    <li class="form-check">
-                                        <input class="form-check-input" 
-                                               type="checkbox" 
-                                               name="category" 
-                                               value="{{ category.name }}"
-                                               id="cat-{{ category.id }}"
-                                               {% if category.name in selected_categories %}checked{% endif %}>
-                                        <label class="form-check-label" for="cat-{{ category.id }}">
-                                            {{ category.name }}
-                                        </label>
-                                    </li>
-                                    {% endfor %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li class="d-flex justify-content-between px-3">
-                                        <button type="button" class="btn btn-sm btn-outline-dark clear-filters">
+                                <div class="dropdown-menu p-3" style="width: 300px; z-index: 1001;">
+                                    <div class="d-flex flex-column gap-2">
+                                        {% for category in categories %}
+                                        <div class="form-check d-flex align-items-center">
+                                            <input class="form-check-input" 
+                                                   type="checkbox" 
+                                                   name="category" 
+                                                   value="{{ category.name }}"
+                                                   id="cat-{{ category.id }}"
+                                                   {% if category.name in selected_categories %}checked{% endif %}>
+                                            <label class="form-check-label ms-2" for="cat-{{ category.id }}">
+                                                {{ category.name }}
+                                            </label>
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-muted">
+                                            No categories available
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-between">
+                                        <button type="button" class="btn btn-sm btn-outline-dark clear-categories">
                                             Clear
                                         </button>
                                         <button type="submit" class="btn btn-sm btn-dark">
                                             Apply
                                         </button>
-                                    </li>
-                                </ul>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Sorting -->
-                            <select class="form-select border-0 shadow-sm rounded-pill" 
+                            <select class="form-select border-0 shadow-sm w-auto rounded-pill" 
                                     name="sort"
-                                    onchange="this.form.submit()"
-                                    style="width: 200px;">
+                                    onchange="this.form.submit()">
                                 <option value="">Sort By</option>
                                 <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>
                                     Price: Low to High
@@ -105,22 +101,12 @@
                         <span class="badge bg-success position-absolute top-0 end-0 m-2">Sale</span>
                         {% endif %}
                         
-                        <!-- Game Image -->
-                        {% if game.image %}
                         <img src="{{ game.image.url }}" 
                              class="card-img-top game-image" 
                              alt="{{ game.name }}"
                              style="height: 200px; object-fit: cover;">
-                             {% else %}
-                        <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" 
-                             style="height: 200px;">
-                            <i class="bi bi-image text-light fs-1"></i>
-                        </div>
-                        {% endif %}
                         
-                        <!-- Card Body -->
-                        <div class="card-body d-flex flex-column">
-                            <!-- Categories -->
+                        <div class="card-body">
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 {% for category in game.categories.all %}
                                 <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">
@@ -129,11 +115,9 @@
                                 {% endfor %}
                             </div>
                             
-                            <!-- Game Title -->
                             <h5 class="card-title mb-3 text-dark">{{ game.name }}</h5>
                             
-                            <!-- Price -->
-                            <div class="d-flex align-items-center mb-4 mt-auto">
+                            <div class="d-flex align-items-center mb-4">
                                 {% if game.is_on_sale %}
                                 <h4 class="text-success mb-0">₹{{ game.sale_price }}</h4>
                                 <small class="text-muted ms-2 text-decoration-line-through">₹{{ game.price }}</small>
@@ -142,7 +126,6 @@
                                 {% endif %}
                             </div>
                             
-                            <!-- View Details Button -->
                             <a href="{% url 'game_details' game.id %}" 
                                class="btn btn-dark w-100 d-flex align-items-center justify-content-center">
                                 View Details
@@ -154,86 +137,80 @@
                 {% endfor %}
             </div>
             {% else %}
-            <!-- Empty State -->
             <div class="text-center py-5">
-                <div class="mb-4">
+                <div class="mb-4"> 
                     <i class="bi bi-controller display-1 text-muted"></i>
                 </div>
-                <h2 class="h3 mb-3 text-dark">No Games Found</h2>
-                <p class="text-muted">Try adjusting your search or filters</p>
-                <a href="{% url 'game_list' %}" class="btn btn-dark mt-3">
-                    Clear Filters
-                </a>
+                <h2 class="h3 mb-3 text-dark">New Arrivals Coming Soon</h2>
+                <p class="text-muted">We're preparing something extraordinary</p>
             </div>
             {% endif %}
         </div>
     </main>
 </section>
-
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Clear filters functionality
-    document.querySelector('.clear-filters').addEventListener('click', function() {
-        // Uncheck all category checkboxes
-        document.querySelectorAll('input[name="category"]:checked').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        // Submit the form
-        this.closest('form').submit();
-    });
-
-    // Preserve existing query parameters
-    const form = document.querySelector('form');
-    const existingParams = new URLSearchParams(window.location.search);
-    
-    // Add hidden inputs for existing parameters
-    existingParams.forEach((value, key) => {
-        if (!form.elements[key] && key !== 'category') {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
-        }
-    });
-});
-</script>
-
+     
 <style>
-.hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 0.75rem;
-}
+    :root {
+        --bs-primary: #212529;
+        --bs-secondary: #6c757d;
+        --bs-success: #198754;
+        --bs-dark: #212529;
+    }
 
-.hover-lift:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 1rem 2rem rgba(0,0,0,0.1) !important;
-}
+    .game-store .dropdown-menu {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
 
-.game-image {
-    border-radius: 0.75rem 0.75rem 0 0;
-    object-position: center top;
-}
+    .game-store .form-check {
+        padding: 0.25rem 0;
+    }
 
-.badge.bg-primary {
-    background-color: rgba(33,37,41,0.1) !important;
-    color: #212529 !important;
-    border: 1px solid rgba(33,37,41,0.2);
-}
+    .game-store .form-check-input {
+        margin-top: 0;
+    }
 
-.btn-dark {
-    background-color: #212529;
-    border-color: #212529;
-    transition: all 0.2s ease;
-}
-
-.btn-dark:hover {
-    background-color: #1a1e21;
-    border-color: #1a1e21;
-    transform: translateY(-2px);
-}
+    .game-store .form-check-label {
+        white-space: normal;
+        word-break: break-word;
+    }
+    
+    .game-store .game-image {
+        border-radius: 0.375rem 0.375rem 0 0;
+    }
+    
+    .game-store .hover-lift {
+        transition: all 0.2s ease;
+        border-radius: 0.75rem;
+    }
+    
+    .game-store .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 3rem rgba(0,0,0,0.1);
+    }
+    
+    .game-store .badge.bg-primary {
+        background-color: rgba(33,37,41,0.1) !important;
+        color: var(--bs-dark) !important;
+    }
+    
+    .game-store .btn-dark {
+        background-color: var(--bs-dark);
+        border-color: var(--bs-dark);
+    }
+    
+    .game-store .btn-dark:hover {
+        background-color: #1a1e21;
+        border-color: #1a1e21;
+    }
+    
+    .game-store .rounded-pill {
+        border-radius: 50rem !important;
+    }
+    
+    .game-store .shadow-sm {
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
+    }
 </style>
-
+     
 {% endblock %}

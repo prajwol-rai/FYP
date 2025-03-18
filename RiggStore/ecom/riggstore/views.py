@@ -585,16 +585,20 @@ def admin_delete_community(request, community_id):
 
 # Render the details of a specific game.
 
-def game_detail(request, game_id):
-    game = get_object_or_404(Game, id=game_id)
+def game_details(request, game_id):
+    game = get_object_or_404(
+        Game.objects.select_related('submission', 'developer__user')
+                   .prefetch_related('categories'),
+        id=game_id
+    )
     return render(request, 'game_details.html', {'game': game})
 
 from django.db.models import Q
 
 def game_list(request):
-    games = Game.objects.all()
-    categories = Category.objects.all()
-    
+    games = Game.objects.all().prefetch_related('categories')  # Optimize query
+    categories = Category.objects.all().order_by('name') 
+
     # Search functionality
     search_query = request.GET.get('q', '')
     if search_query:
@@ -745,7 +749,8 @@ def review_submission(request, submission_id):
                         image=submission.thumbnail,
                         approved=True,
                         sale_price=0.00,
-                        is_on_sale=False
+                        is_on_sale=False,
+                        submission=submission  
                     )
                     # Set categories from submission
                     game.categories.set(submission.categories.all())
