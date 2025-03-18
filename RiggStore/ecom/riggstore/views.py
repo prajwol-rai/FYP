@@ -586,14 +586,47 @@ def admin_delete_community(request, community_id):
 # Render the details of a specific game.
 
 def game_detail(request, game_id):
-    # Retrieve the game object by its ID
     game = get_object_or_404(Game, id=game_id)
+    return render(request, 'game_details.html', {'game': game})
 
-    # Pass the game object to the template
-    context = {
-        'game': game,
+from django.db.models import Q
+
+def game_list(request):
+    games = Game.objects.all()
+    categories = Category.objects.all()
+    
+    # Search functionality
+    search_query = request.GET.get('q', '')
+    if search_query:
+        games = games.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    # Category filter
+    selected_categories = request.GET.getlist('category')
+    if selected_categories:
+        games = games.filter(categories__name__in=selected_categories).distinct()
+    
+    # Sorting
+    sort_map = {
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'name_asc': 'name',
+        'name_desc': '-name'
     }
-    return render(request, 'game_details.html', context)
+    sort_by = request.GET.get('sort', '')
+    if sort_by in sort_map:
+        games = games.order_by(sort_map[sort_by])
+    
+    context = {
+        'games': games,
+        'categories': categories,
+        'selected_categories': selected_categories,
+        'current_sort': sort_by,
+        'search_query': search_query
+    }
+    return render(request, 'game_list.html', context)
 
 @login_required
 def developer_dashboard(request):

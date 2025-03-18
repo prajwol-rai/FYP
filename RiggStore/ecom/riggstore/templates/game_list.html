@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<section class="game-store bg-light">
+    <header class="store-header py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold mb-3 text-dark">Discover Next-Level Gaming</h1>
+                <p class="lead text-muted">Explore our curated collection of premium titles</p>
+            </div>
+
+            <!-- Search and Filters -->
+            <form method="GET" action="{% url 'game_list' %}">
+                <div class="row justify-content-center mb-4">
+                    <div class="col-lg-8">
+                        <!-- Search Bar -->
+                        <div class="input-group shadow-sm mb-4">
+                            <input type="text" 
+                                   class="form-control bg-white border-0 py-3" 
+                                   placeholder="Search games..." 
+                                   name="q"
+                                   value="{{ search_query|default:'' }}">
+                            <button class="btn btn-dark px-4" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div class="dropdown">
+                                <button class="btn btn-dark dropdown-toggle" type="button" 
+                                        id="categoryDropdown" data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                    Categories
+                                    {% if selected_categories %}
+                                    <span class="badge bg-light text-dark ms-2">
+                                        {{ selected_categories|length }}
+                                    </span>
+                                    {% endif %}
+                                </button>
+                                <ul class="dropdown-menu p-3" style="width: 300px;">
+                                    {% for category in categories %}
+                                    <li class="form-check">
+                                        <input class="form-check-input" 
+                                               type="checkbox" 
+                                               name="category" 
+                                               value="{{ category.name }}"
+                                               id="cat-{{ category.id }}"
+                                               {% if category.name in selected_categories %}checked{% endif %}>
+                                        <label class="form-check-label" for="cat-{{ category.id }}">
+                                            {{ category.name }}
+                                        </label>
+                                    </li>
+                                    {% endfor %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="d-flex justify-content-between px-3">
+                                        <button type="button" class="btn btn-sm btn-outline-dark clear-filters">
+                                            Clear
+                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-dark">
+                                            Apply
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Sorting -->
+                            <select class="form-select border-0 shadow-sm rounded-pill" 
+                                    name="sort"
+                                    onchange="this.form.submit()"
+                                    style="width: 200px;">
+                                <option value="">Sort By</option>
+                                <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>
+                                    Price: Low to High
+                                </option>
+                                <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>
+                                    Price: High to Low
+                                </option>
+                                <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>
+                                    Name: A-Z
+                                </option>
+                                <option value="name_desc" {% if current_sort == 'name_desc' %}selected{% endif %}>
+                                    Name: Z-A
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </header>
+
+    <main class="store-main pb-5">
+        <div class="container">
+            {% if games %}
+            <div class="row g-4">
+                {% for game in games %}
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm hover-lift">
+                        {% if game.is_on_sale %}
+                        <span class="badge bg-success position-absolute top-0 end-0 m-2">Sale</span>
+                        {% endif %}
+                        
+                        <!-- Game Image -->
+                        {% if game.image %}
+                        <img src="{{ game.image.url }}" 
+                             class="card-img-top game-image" 
+                             alt="{{ game.name }}"
+                             style="height: 200px; object-fit: cover;">
+                             {% else %}
+                        <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" 
+                             style="height: 200px;">
+                            <i class="bi bi-image text-light fs-1"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Card Body -->
+                        <div class="card-body d-flex flex-column">
+                            <!-- Categories -->
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% for category in game.categories.all %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">
+                                    {{ category.name }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Game Title -->
+                            <h5 class="card-title mb-3 text-dark">{{ game.name }}</h5>
+                            
+                            <!-- Price -->
+                            <div class="d-flex align-items-center mb-4 mt-auto">
+                                {% if game.is_on_sale %}
+                                <h4 class="text-success mb-0">₹{{ game.sale_price }}</h4>
+                                <small class="text-muted ms-2 text-decoration-line-through">₹{{ game.price }}</small>
+                                {% else %}
+                                <h4 class="text-dark mb-0">₹{{ game.price }}</h4>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- View Details Button -->
+                            <a href="{% url 'game_details' game.id %}" 
+                               class="btn btn-dark w-100 d-flex align-items-center justify-content-center">
+                                View Details
+                                <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="bi bi-controller display-1 text-muted"></i>
+                </div>
+                <h2 class="h3 mb-3 text-dark">No Games Found</h2>
+                <p class="text-muted">Try adjusting your search or filters</p>
+                <a href="{% url 'game_list' %}" class="btn btn-dark mt-3">
+                    Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</section>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Clear filters functionality
+    document.querySelector('.clear-filters').addEventListener('click', function() {
+        // Uncheck all category checkboxes
+        document.querySelectorAll('input[name="category"]:checked').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        // Submit the form
+        this.closest('form').submit();
+    });
+
+    // Preserve existing query parameters
+    const form = document.querySelector('form');
+    const existingParams = new URLSearchParams(window.location.search);
+    
+    // Add hidden inputs for existing parameters
+    existingParams.forEach((value, key) => {
+        if (!form.elements[key] && key !== 'category') {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
+        }
+    });
+});
+</script>
+
+<style>
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 0.75rem;
+}
+
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.1) !important;
+}
+
+.game-image {
+    border-radius: 0.75rem 0.75rem 0 0;
+    object-position: center top;
+}
+
+.badge.bg-primary {
+    background-color: rgba(33,37,41,0.1) !important;
+    color: #212529 !important;
+    border: 1px solid rgba(33,37,41,0.2);
+}
+
+.btn-dark {
+    background-color: #212529;
+    border-color: #212529;
+    transition: all 0.2s ease;
+}
+
+.btn-dark:hover {
+    background-color: #1a1e21;
+    border-color: #1a1e21;
+    transform: translateY(-2px);
+}
+</style>
+
+{% endblock %}
