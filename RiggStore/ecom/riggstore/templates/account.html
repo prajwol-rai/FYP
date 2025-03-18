@@ -79,37 +79,23 @@
     </div>
 
     {% if user.customer.developer %}
-    <a href="{% url 'developer_dashboard' %}" class="btn btn-secondary">Game Upload Request Detail</a>
-        <a href="{% url 'upload_game' %}" class="btn btn-primary">Submit Game Upload Request</a>
-    {% endif %}
-
-
-
-    <!-- Download History Section -->
-    <div class="download-history">
-        <h3 class="history-heading">
-            <i class="fas fa-download"></i> Download History
-        </h3>
-        
-        <div class="history-table">
-            <div class="table-header">
-                <div class="header-item">File Name</div>
-                <div class="header-item">Download Date</div>
+    <div class="developer-cta mb-5">
+        <div class="cta-card p-4 rounded-3 shadow-sm">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h4 class="mb-1"><i class="fas fa-gamepad me-2"></i>Developer Portal</h4>
+                    <p class="text-muted mb-0">Manage your game submissions and track performance</p>
+                </div>
+                <a href="{% url 'developer_dashboard' %}" class="btn btn-success btn-lg">
+                    <i class="fas fa-rocket me-2"></i>
+                    Manage Games
+                </a>
             </div>
-            
-            {% for item in download_history %}
-            <div class="table-row">
-                <div class="table-data">{{ item.file_name }}</div>
-                <div class="table-data">{{ item.download_date }}</div>
-            </div>
-            {% empty %}
-            <div class="empty-state">
-                <i class="fas fa-box-open"></i>
-                No downloads yet
-            </div>
-            {% endfor %}
         </div>
     </div>
+    
+    {% endif %}
+
 </div>
 
 <style>
@@ -123,6 +109,40 @@
         --danger-color: #ef4444;
     }
 
+    .developer-cta {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .stat-icon {
+        color: #0d6efd;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .cta-card {
+        background: white;
+        border: 1px solid #dee2e6;
+    }
     .account-container {
         max-width: 1200px;
         margin: 2rem auto;

@@ -42,21 +42,31 @@
       <!-- Left Column -->
       <div class="col-lg-8">
         <!-- Screenshots -->
-        <div class="screenshots-section mb-5">
-          <div class="screenshots-grid">
-            {% for screenshot in game.submission.gamescreenshot_set.all %}
-              <div class="screenshot-item">
-                <img src="{{ screenshot.image.url }}" class="img-fluid rounded-3" alt="Game screenshot">
+        <div class="mb-4">
+          <h4 class="border-bottom pb-2">Screenshots</h4>
+          <div class="row row-cols-2 row-cols-md-3 g-2">
+              {% for screenshot in submission.gamescreenshot_set.all %}
+              <div class="col">
+                  <a href="{{ screenshot.image.url }}" target="_blank">
+                      <img src="{{ screenshot.image.url }}" 
+                           class="img-fluid rounded" 
+                           alt="Screenshot"
+                           style="height: 150px; object-fit: cover;">
+                  </a>
               </div>
-            {% endfor %}
+              {% empty %}
+              <div class="col-12">
+                  <div class="alert alert-info">No screenshots provided</div>
+              </div>
+              {% endfor %}
           </div>
-        </div>
+      </div>
 
-        <div class="badge bg-primary text-white mb-3">
-            {% for category in game.categories.all %}
-              {{ category.name }}{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        </div>
+      <div class="badge custom-bg text-white mb-3">
+        {% for category in game.categories.all %}
+          {{ category.name }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </div>
 
         <!-- Game Description -->
         <div class="description-section mb-5">
@@ -167,7 +177,11 @@
 </section>
 
 <style>
-    /* Enhanced CSS with existing color scheme */
+  .custom-bg {
+      background-color: #212529 !important; /* Using !important to override Bootstrap */
+      color: white; /* Set the text color to white for readability */
+  }
+      /* Enhanced CSS with existing color scheme */
     .game-details-section {
       background: white;
       padding: 2rem 0;

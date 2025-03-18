@@ -50,7 +50,7 @@ class Game(models.Model):
 
     submission = models.OneToOneField(  # Add this field
         'GameSubmission',
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='published_game'
@@ -66,7 +66,7 @@ class Game(models.Model):
     approved = models.BooleanField(default=False)
 
     def delete(self, *args, **kwargs):
-        # Delete associated image file
+        """Delete game and its files"""
         self.image.delete(save=False)
         super().delete(*args, **kwargs)
 
@@ -183,11 +183,18 @@ class GameSubmission(models.Model):
     file_size = models.PositiveIntegerField(null=True, blank=True)  # Automatically stored
 
     def delete(self, *args, **kwargs):
+        """Handle file deletions while letting Django manage DB relations"""
         # Delete associated files
         self.game_file.delete(save=False)
         self.thumbnail.delete(save=False)
         if self.trailer:
             self.trailer.delete(save=False)
+            
+        # Delete screenshots and their files
+        for screenshot in self.gamescreenshot_set.all():
+            screenshot.image.delete(save=False)
+            screenshot.delete()
+            
         super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):

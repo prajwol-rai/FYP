@@ -651,74 +651,146 @@ def developer_dashboard(request):
 
 # Add to imports
 
+from django.db import transaction
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from decimal import Decimal, InvalidOperation
+
 @login_required
+@transaction.atomic
 def upload_game(request):
     try:
         customer = request.user.customer
         developer = Developer.objects.get(user=customer)
         categories = Category.objects.all()
-        
+
         if request.method == 'POST':
+            form_data = request.POST.copy()
             try:
-                # Create GameSubmission instance
+                # Validate price format
+                try:
+                    price = Decimal(form_data['price'])
+                    if price < Decimal('0.00'):
+                        raise ValueError("Price cannot be negative")
+                except (InvalidOperation, ValueError) as e:
+                    messages.error(request, f"Invalid price format: {str(e)}")
+                    return render(request, 'upload_game.html', {
+                        'categories': categories,
+                        'form_data': form_data
+                    })
+
+                # Validate required files
+                if 'game_file' not in request.FILES:
+                    messages.error(request, "Game file is required")
+                    return render(request, 'upload_game.html', {
+                        'categories': categories,
+                        'form_data': form_data
+                    })
+
+                # Validate screenshots
+                screenshots = request.FILES.getlist('screenshots')
+                if len(screenshots) < 1:
+                    messages.error(request, "At least one screenshot is required")
+                    return render(request, 'upload_game.html', {
+                        'categories': categories,
+                        'form_data': form_data
+                    })
+
+                # Validate file types
+                valid_image_types = ['image/jpeg', 'image/png', 'image/gif']
+                for screenshot in screenshots:
+                    if screenshot.content_type not in valid_image_types:
+                        messages.error(request, "Only JPG, PNG, and GIF images are allowed for screenshots")
+                        return render(request, 'upload_game.html', {
+                            'categories': categories,
+                            'form_data': form_data
+                        })
+
+                # Create submission
                 submission = GameSubmission(
                     developer=developer,
-                    title=request.POST['title'],
-                    description=request.POST['description'],
-                    price=Decimal(request.POST['price']),
-                    version=request.POST['version'],
-                    min_os=request.POST['min_os'],
-                    min_processor=request.POST['min_processor'],
-                    min_ram=request.POST['min_ram'],
-                    min_gpu=request.POST['min_gpu'],
-                    min_directx=request.POST['min_directx'],
-                    rec_os=request.POST['rec_os'],
-                    rec_processor=request.POST['rec_processor'],
-                    rec_ram=request.POST['rec_ram'],
-                    rec_gpu=request.POST['rec_gpu'],
-                    rec_directx=request.POST['rec_directx'],
+                    title=form_data['title'],
+                    description=form_data['description'],
+                    price=price,
+                    version=form_data['version'],
+                    min_os=form_data['min_os'],
+                    min_processor=form_data['min_processor'],
+                    min_ram=form_data['min_ram'],
+                    min_gpu=form_data['min_gpu'],
+                    min_directx=form_data['min_directx'],
+                    rec_os=form_data['rec_os'],
+                    rec_processor=form_data['rec_processor'],
+                    rec_ram=form_data['rec_ram'],
+                    rec_gpu=form_data['rec_gpu'],
+                    rec_directx=form_data['rec_directx'],
                     game_file=request.FILES['game_file'],
                     thumbnail=request.FILES['thumbnail'],
                     trailer=request.FILES.get('trailer'),
                 )
                 submission.save()
-                
+
                 # Handle categories
-                category_ids = request.POST.getlist('categories')
+                category_ids = form_data.getlist('categories')
                 submission.categories.set(category_ids)
 
                 # Handle screenshots
-                for file in request.FILES.getlist('screenshots'):
-                    GameScreenshot.objects.create(game_submission=submission, image=file)
+                for file in screenshots:
+                    GameScreenshot.objects.create(
+                        game_submission=submission, 
+                        image=file
+                    )
 
                 messages.success(request, 'Game submitted for review!')
                 return redirect('developer_dashboard')
 
-            except Exception as e:
-                messages.error(request, f'Error: {str(e)}')
+            except KeyError as e:
+                messages.error(request, f"Missing required field: {str(e)}")
                 return render(request, 'upload_game.html', {
                     'categories': categories,
-                    'form_data': request.POST
+                    'form_data': form_data
+                })
+                
+            except Exception as e:
+                messages.error(request, f'Submission error: {str(e)}')
+                return render(request, 'upload_game.html', {
+                    'categories': categories,
+                    'form_data': form_data
                 })
 
         return render(request, 'upload_game.html', {
             'categories': categories
         })
 
-    except (Customer.DoesNotExist, Developer.DoesNotExist) as e:
-        messages.error(request, 'You need a developer account to upload games')
+    except (Customer.DoesNotExist, Developer.DoesNotExist):
+        messages.error(request, 'Developer account required for game submissions')
         return redirect('home')
 
+# views.py
 @login_required
-@user_passes_test(lambda u: u.is_staff)
 def delete_submission(request, submission_id):
-    submission = get_object_or_404(GameSubmission, id=submission_id)
-    if request.method == 'POST':
-        submission.delete()
-        messages.success(request, "Submission deleted successfully.")
-        return redirect('admin_panel')
-    return redirect('review_submissions')
+    try:
+        developer = request.user.customer.developer
+        submission = get_object_or_404(
+            GameSubmission,
+            id=submission_id,
+            developer=developer
+        )
+        
+        if request.method == 'POST':
+            # This single delete call will cascade to:
+            # 1. Delete Game via CASCADE
+            # 2. Delete Game image via Game.delete()
+            # 3. Delete submission files via GameSubmission.delete()
+            submission.delete()
+            
+            messages.success(request, "Submission and associated game permanently deleted")
+            return redirect('developer_dashboard')
 
+        return redirect('developer_dashboard')
+
+    except Exception as e:
+        messages.error(request, f"Deletion failed: {str(e)}")
+        return redirect('developer_dashboard')
+    
 @login_required
 @user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def review_submissions(request):
@@ -741,24 +813,21 @@ def review_submission(request, submission_id):
         try:
             if action == 'approve':
                 if submission.status != 'approved':
-                    game = Game.objects.create(
-                        name=submission.title,
-                        description=submission.description,
-                        developer=submission.developer,
-                        price=submission.price,
-                        image=submission.thumbnail,
-                        approved=True,
-                        sale_price=0.00,
-                        is_on_sale=False,
-                        submission=submission  
+                    # Create or update the game with submission reference
+                    game, created = Game.objects.update_or_create(
+                        submission=submission,
+                        defaults={
+                            'name': submission.title,
+                            'description': submission.description,
+                            'developer': submission.developer,
+                            'price': submission.price,
+                            'image': submission.thumbnail,
+                            'approved': True,
+                            'sale_price': 0.00,
+                            'is_on_sale': False
+                        }
                     )
-                    # Set categories from submission
                     game.categories.set(submission.categories.all())
-                    
-                    # Copy screenshots
-                    for screenshot in submission.gamescreenshot_set.all():
-                        GameScreenshot.objects.create(game=game, image=screenshot.image)
-
                     submission.status = 'approved'
                     messages.success(request, 'Game approved and published!')
 

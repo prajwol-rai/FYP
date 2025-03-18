@@ -126,36 +126,35 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Wait until the DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('review-form');
         const actionButtons = document.querySelectorAll('.action-btn');
-        
+
         actionButtons.forEach(button => {
             button.addEventListener('click', function(e) {
-                const action = button.getAttribute('data-action');
-                const confirmText = action === 'approve'
-                    ? "Are you sure you want to approve this submission?"
-                    : "Are you sure you want to reject this submission?";
+                e.preventDefault(); // Prevent immediate form submission
+                const action = this.dataset.action;
+                const actionText = action === 'approve' ? 'approve' : 'reject';
                 
-                // Show confirmation dialog using SweetAlert
-                swal({
-                    title: "Confirm " + (action === 'approve' ? "Approval" : "Rejection"),
-                    text: confirmText,
-                    icon: "warning",
-                    buttons: true,
-                    dangerMode: (action === 'reject')
-                })
-                .then((willConfirm) => {
-                    if (willConfirm) {
-                        // Add a hidden input to indicate which action was taken
-                        let hiddenInput = document.createElement('input');
-                        hiddenInput.type = 'hidden';
-                        hiddenInput.name = action;
-                        hiddenInput.value = '1';
-                        form.appendChild(hiddenInput);
+                Swal.fire({
+                    title: `Confirm ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
+                    text: `Are you sure you want to ${actionText} this submission?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: `Yes, ${actionText}!`,
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Add hidden input for action
+                        const actionInput = document.createElement('input');
+                        actionInput.type = 'hidden';
+                        actionInput.name = 'action';
+                        actionInput.value = action;
+                        form.appendChild(actionInput);
                         
                         // Submit the form
                         form.submit();
@@ -165,6 +164,7 @@
         });
     });
 </script>
+
 
 {% endblock %}
 
