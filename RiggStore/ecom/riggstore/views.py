@@ -940,6 +940,33 @@ def delete_submission(request, submission_id):
     except (Customer.DoesNotExist, Developer.DoesNotExist):
         messages.error(request, "Authorization failed")
         return redirect('home')
+    
+# ======================
+# order Views
+# ======================
+from .models import Game, Cart, CartItem
+@login_required
+def cart_view(request):
+    customer = request.user.customer
+    cart, created = Cart.objects.get_or_create(customer=customer)
+    return render(request, 'cart.html', {'cart': cart})
+
+@login_required
+def add_to_cart(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    customer = request.user.customer
+
+    # Get or create a cart for the user
+    cart, created = Cart.objects.get_or_create(customer=customer)
+
+    # Check if item already in cart
+    cart_item, created = CartItem.objects.get_or_create(cart=cart, game=game)
+    if not created:
+        cart_item.quantity += 1
+        cart_item.save()
+
+    return redirect('cart_view')  
+
 # ======================
 # Miscellaneous Views
 # ======================

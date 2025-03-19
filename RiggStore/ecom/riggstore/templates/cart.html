@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Your Cart{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h2>Your Cart</h2>
+  {% if cart.items.all %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Game</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart.items.all %}
+          <tr>
+            <td>{{ item.game.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>Rs. {{ item.game.price }}</td>
+            <td>Rs. {{ item.total_price }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h4>Total: Rs. {{ cart.total_price }}</h4>
+  {% else %}
+    <p>Your cart is empty.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -45,7 +45,7 @@
         <div class="mb-4">
           <h4 class="border-bottom pb-2">Screenshots</h4>
           <div class="row row-cols-2 row-cols-md-3 g-2">
-              {% for screenshot in submission.gamescreenshot_set.all %}
+            {% for screenshot in game.submission.gamescreenshot_set.all %}
               <div class="col">
                   <a href="{{ screenshot.image.url }}" target="_blank">
                       <img src="{{ screenshot.image.url }}" 
@@ -138,10 +138,13 @@
         <div class="purchase-section card border-0 shadow-lg">
           <div class="card-body text-center">
             <div class="d-grid gap-3">
-              <button class="btn btn-lg" style="background-color: #212529; color: white;">
-                <i class="fas fa-shopping-cart me-2"></i>
-                Buy Now - Rs. {{ game.price|floatformat:2 }}
-              </button>
+              <form method="post" action="{% url 'add_to_cart' game.id %}">
+                {% csrf_token %}
+                <button class="btn btn-lg" style="background-color: #212529; color: white;">
+                  <i class="fas fa-shopping-cart me-2"></i>
+                  Buy Now - Rs. {{ game.price|floatformat:2 }}
+                </button>
+              </form>
               {% if game.submission.trailer %}
                 <a href="{{ game.submission.trailer.url }}" 
                    class="btn btn-outline-dark btn-lg py-3"

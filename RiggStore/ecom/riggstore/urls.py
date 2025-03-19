@@ -49,6 +49,10 @@ urlpatterns = [
     path('edit-submission/<int:submission_id>/', views.edit_submission, name='edit_submission'),
     path('games/', views.game_list, name='game_list'),
     
+    #order
+    path('add-to-cart/<int:game_id>/', views.add_to_cart, name='add_to_cart'),
+    path('cart/', views.cart_view, name='cart_view'),
+    
     # Miscellaneous
     path('aboutus/', views.aboutus, name='aboutus'),
 ]

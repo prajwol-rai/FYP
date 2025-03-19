@@ -48,7 +48,7 @@ class Developer(models.Model):
 
 class Game(models.Model):
 
-    submission = models.OneToOneField(  # Add this field
+    submission = models.OneToOneField( 
         'GameSubmission',
         on_delete=models.CASCADE,
         null=True,
@@ -237,3 +237,24 @@ def create_customer(sender, instance, created, **kwargs):
             l_name=instance.last_name,
             email=instance.email
         )
+
+class Cart(models.Model):
+    customer = models.OneToOneField(Customer, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def total_price(self):
+        return sum(item.total_price() for item in self.items.all())
+
+    def __str__(self):
+        return f"Cart of {self.customer}"
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def total_price(self):
+        return self.game.price * self.quantity
+
+    def __str__(self):
+        return f"{self.game.name} in cart of {self.cart.customer}"

@@ -4,19 +4,6 @@
 {% block title %}Upload Game{% endblock %}
 
 {% block content %}
-<!-- Display any Django messages (errors, success notifications) -->
-{% if messages %}
-<div class="alert-container">
-  {% for message in messages %}
-  <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-    {{ message }}
-    <button type="button" class="close" data-dismiss="alert">
-      <span>&times;</span>
-    </button>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
 
 <div class="upload-game-container">
     <form method="POST" action="{% url 'upload_game' %}" enctype="multipart/form-data" id="upload-form">
@@ -83,9 +70,10 @@
                     <div class="form-group">
                         <label for="id_screenshots">Game Screenshots</label>
                         <div class="custom-file">
-                            <input type="file" class="custom-file-input" id="id_screenshots" name="screenshots[]" accept="image/*" multiple>
+                            <input type="file" class="custom-file-input" id="id_screenshots" name="screenshots" accept="image/*" multiple>
                             <label class="custom-file-label" for="id_screenshots">Choose images...</label>
                         </div>
+                        <div id="selected-screenshots" class="selected-files mt-2"></div>
                     </div>
                     <div class="form-group">
                         <label for="id_trailer">Game Trailer</label>
@@ -229,65 +217,61 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('upload-form');
-        const fileInputs = document.querySelectorAll('.custom-file-input');
+        document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('upload-form');
+    const screenshotsInput = document.getElementById('id_screenshots');
+    const selectedScreenshotsContainer = document.getElementById('selected-screenshots');
 
-        // File input labels
-        fileInputs.forEach(input => {
-            input.addEventListener('change', function() {
-                const label = this.nextElementSibling;
-                label.textContent = this.files.length > 1 ? 
-                    `${this.files.length} files selected` : 
-                    this.files[0]?.name || 'Choose file...';
-            });
+    // Handle screenshots input change
+    screenshotsInput.addEventListener('change', function() {
+        const label = this.nextElementSibling;
+        label.textContent = `${this.files.length} file${this.files.length !== 1 ? 's' : ''} selected`;
+
+        // Clear previous selections
+        selectedScreenshotsContainer.innerHTML = '';
+
+        // Display selected files
+        Array.from(this.files).forEach(file => {
+            const fileElement = document.createElement('div');
+            fileElement.textContent = file.name;
+            selectedScreenshotsContainer.appendChild(fileElement);
         });
-
-        // Form validation
-        form.addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            let isValid = true;
-
-            // File size validation
-            document.querySelectorAll('[data-max-size]').forEach(input => {
-                const maxSize = parseInt(input.dataset.maxSize);
-                const files = input.files;
-
-                if (!files.length && input.required) {
-                    isValid = false;
-                    alert(`${input.labels[0].textContent} is required`);
-                    return;
-                }
-
-                Array.from(files).forEach(file => {
-                    if (file.size > maxSize) {
-                        isValid = false;
-                        alert(`${file.name} exceeds ${formatBytes(maxSize)} limit`);
-                    }
-                });
-            });
-
-            if (!isValid) {
-                e.preventDefault();
-                return;
-            }
-
-            // Loading state
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-            submitBtn.disabled = true;
-        });
-
-        function formatBytes(bytes) {
-            const units = ['B', 'KB', 'MB', 'GB'];
-            let size = bytes;
-            let unitIndex = 0;
-            while (size >= 1024 && unitIndex < units.length - 1) {
-                size /= 1024;
-                unitIndex++;
-            }
-            return `${size.toFixed(1)} ${units[unitIndex]}`;
-        }
     });
+
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        let isValid = true;
+
+        // Example file size validation logic (adjust according to your needs)
+        // You can set your own data-max-size attributes in your HTML inputs if necessary
+
+        if (!screenshotsInput.files.length && screenshotsInput.required) {
+            isValid = false;
+            alert("At least one screenshot is required.");
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            return;
+        }
+
+        // Loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        submitBtn.disabled = true;
+    });
+
+    function formatBytes(bytes) {
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let size = bytes;
+        let unitIndex = 0;
+        while (size >= 1024 && unitIndex < units.length - 1) {
+            size /= 1024;
+            unitIndex++;
+        }
+        return `${size.toFixed(1)} ${units[unitIndex]}`;
+    }
+});
 </script>
 
 <style>
