@@ -52,6 +52,8 @@ urlpatterns = [
     #order
     path('add-to-cart/<int:game_id>/', views.add_to_cart, name='add_to_cart'),
     path('cart/', views.cart_view, name='cart_view'),
+    path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('cart/delete-selected/', views.delete_selected_items, name='delete_selected_items'),
     path('download-free-games/', views.download_free_games, name='download_free_games'),
 
     # Miscellaneous

@@ -6,63 +6,174 @@
         max-width: 1200px;
         margin: 2rem auto;
         padding: 2rem;
-        background: #ffffff;
+        background: #fff;
         border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
     }
 
     .cart-title {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
         font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 2rem;
-        border-bottom: 3px solid #4a5568;
+        color: #1a202c;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #e2e8f0;
         padding-bottom: 0.5rem;
-        letter-spacing: -0.5px;
     }
 
     .cart-table {
         width: 100%;
         border-collapse: collapse;
-        background: white;
-        overflow: hidden;
-        margin: 2rem 0;
+        margin-top: 1rem;
     }
 
     .cart-table thead {
-        background: #f8f9fa;
-        border-bottom: 2px solid #e2e8f0;
+        background-color: #f7fafc;
     }
 
-    .cart-table th {
-        padding: 1.2rem 1.5rem;
+    .cart-table th, .cart-table td {
+        padding: 1rem;
         text-align: left;
-        color: #4a5568;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-    }
-
-    .cart-table td {
-        padding: 1.5rem;
-        color: #4a5568;
         border-bottom: 1px solid #edf2f7;
     }
 
-    .cart-table tr:last-child td {
-        border-bottom: none;
+    .cart-table th {
+        font-size: 0.875rem;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
-    .cart-table tr:hover td {
-        background: #f8fafc;
-    }
-
-    .total-price {
-        font-size: 1.5rem;
-        font-weight: 700;
+    .cart-table td {
+        font-size: 1rem;
         color: #2d3748;
-        padding: 1.5rem 0;
+    }
+
+    .cart-item-row:hover {
+        background-color: #f9fafb;
+        transition: background 0.2s ease-in-out;
+    }
+
+    .game-name {
+        font-weight: 600;
+    }
+
+    .price-highlight {
+        font-weight: 600;
+        color: #2f855a;
+    }
+
+    .select-all {
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: #f8f9fa;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #2d3748;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        transition: background 0.2s ease;
+    }
+
+    .select-all:hover {
+        background: #edf2f7;
+    }
+
+    .select-all input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #4299e1;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .select-all input[type="checkbox"]:hover {
+        transform: scale(1.1);
+    }
+
+    .select-all label {
+        cursor: pointer;
+    }
+
+
+    .checkbox-cell {
+        width: 40px;
+    }
+
+    .checkbox-cell input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #3182ce;
+    }
+
+    .remove-btn {
+        color: #e53e3e;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .remove-btn:hover {
+        color: #c53030;
+        transform: scale(1.2);
+    }
+
+    .checkout-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f7fafc;
+        border-radius: 8px;
+    }
+
+    .selected-total {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
         text-align: right;
+        margin-bottom: 1rem;
+    }
+
+    .checkout-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    .checkout-btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .checkout-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .payment-btn {
+        background-color: #3182ce;
+        color: white;
+    }
+
+    .payment-btn:hover {
+        background-color: #2b6cb0;
+    }
+
+    .download-btn {
+        background-color: #38a169;
+        color: white;
+    }
+
+    .download-btn:hover {
+        background-color: #2f855a;
     }
 
     .empty-cart {
@@ -73,82 +184,36 @@
 
     .empty-cart p {
         font-size: 1.25rem;
-        margin: 0;
-        padding: 1rem;
-        background: #f8f9fa;
+        background: #f7fafc;
+        padding: 1rem 2rem;
         border-radius: 8px;
         display: inline-block;
     }
 
-    .game-name {
-        font-weight: 600;
-        color: #2d3748;
-    }
-
-    .price-highlight {
-        color: #48bb78;
-        font-weight: 600;
-    }
-
-    .checkout-section {
-        margin-top: 2rem;
-        padding: 1.5rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-    }
-    
-    .checkout-buttons {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1.5rem;
-    }
-    
-    .checkout-btn {
-        padding: 1rem 2rem;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .payment-btn {
-        background: #4299e1;
-        color: white;
-    }
-    
-    .download-btn {
-        background: #48bb78;
-        color: white;
-    }
-    
-    .select-all {
-        margin-bottom: 1rem;
-    }
-    
-    .checkbox-cell {
-        width: 40px;
-        padding-right: 0 !important;
-    }
-
     @media (max-width: 768px) {
-        .cart-container {
-            padding: 1rem;
-            margin: 1rem;
-        }
-        
-        .cart-table td, .cart-table th {
-            padding: 1rem;
-            font-size: 0.9rem;
-        }
-        
         .cart-title {
-            font-size: 2rem;
+            font-size: 1.75rem;
+        }
+
+        .cart-table th, .cart-table td {
+            font-size: 0.875rem;
+            padding: 0.75rem;
+        }
+
+        .checkout-btn {
+            width: 100%;
+            text-align: center;
+        }
+
+        .checkout-buttons {
+            flex-direction: column;
+            align-items: stretch;
         }
     }
 </style>
-
+ 
 <div class="cart-container">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     <h2 class="cart-title">🛒 Your Cart</h2>
     {% if cart.items.all %}
     <div class="select-all">
@@ -163,22 +228,25 @@
                 <th>Quantity</th>
                 <th>Price</th>
                 <th>Total</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             {% for item in cart.items.all %}
-            <tr>
+            <tr class="cart-item-row" data-item-id="{{ item.id }}" data-game-id="{{ item.game.id }}">
                 <td class="checkbox-cell">
-                    <input type="checkbox" 
-                           class="game-checkbox" 
-                           data-price="{{ item.total_price }}"
-                           data-game-id="{{ item.game.id }}"
-                           {% if item.game.price == 0 %}checked{% endif %}>
+                    <input type="checkbox" class="game-checkbox" {% if item.game.price == 0 %}checked{% endif %}>
                 </td>
                 <td class="game-name">{{ item.game.name }}</td>
                 <td>{{ item.quantity }}</td>
                 <td class="price-highlight">Rs. {{ item.game.price }}</td>
                 <td class="price-highlight">Rs. {{ item.total_price }}</td>
+                <td>
+                    <!-- This delete button is already functional -->
+                    <span class="remove-btn" onclick="removeCartItem('{{ item.id }}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </span>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -189,10 +257,10 @@
             Selected Total: <span id="selected-total">Rs. 0</span>
         </div>
         <div class="checkout-buttons">
-            <button class="checkout-btn payment-btn" id="payment-btn" style="display: none;">
+            <button class="checkout-btn payment-btn" id="payment-btn">
                 Proceed to Payment
             </button>
-            <button class="checkout-btn download-btn" id="download-btn" style="display: none;">
+            <button class="checkout-btn download-btn" id="download-btn">
                 Download Selected Games
             </button>
         </div>
@@ -205,97 +273,206 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const checkboxes = document.querySelectorAll('.game-checkbox');
-        const selectAll = document.getElementById('select-all');
-        const selectedTotal = document.getElementById('selected-total');
-        const paymentBtn = document.getElementById('payment-btn');
-        const downloadBtn = document.getElementById('download-btn');
-    
-        function updateSelection() {
-            let total = 0;
-            let hasPaidGames = false;
-            
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked && checkbox !== selectAll) {
-                    total += parseFloat(checkbox.dataset.price);
-                    if (parseFloat(checkbox.dataset.price) > 0) {
-                        hasPaidGames = true;
-                    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-            });
-    
-            selectedTotal.textContent = `Rs. ${total.toFixed(2)}`;
-            
-            if (total > 0) {
-                paymentBtn.style.display = 'inline-block';
-                downloadBtn.style.display = 'none';
-            } else if (total === 0 && Array.from(checkboxes).some(c => c.checked)) {
-                downloadBtn.style.display = 'inline-block';
-                paymentBtn.style.display = 'none';
-            } else {
-                paymentBtn.style.display = 'none';
-                downloadBtn.style.display = 'none';
             }
         }
-    
-        // Checkbox event listeners
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('.game-checkbox');
+    const selectAll = document.querySelector('#select-all');
+    const selectedTotal = document.querySelector('#selected-total');
+    const paymentBtn = document.querySelector('#payment-btn');
+    const downloadBtn = document.querySelector('#download-btn');
+    const deleteSelectedBtn = document.querySelector('#delete-selected-btn');
+    let currentItemToDelete = null;
+
+    // Confirmation Modal
+    const confirmationModal = document.createElement('div');
+    confirmationModal.innerHTML = `
+        <div class="confirmation-modal" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        ">
+            <div class="modal-content" style="
+                background: white;
+                padding: 2rem;
+                border-radius: 8px;
+                max-width: 400px;
+                text-align: center;
+            ">
+                <h3>Confirm Removal</h3>
+                <p>Are you sure you want to remove this item from your cart?</p>
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                    <button class="btn-cancel" style="padding: 0.5rem 1.5rem; background: #f0f0f0; border: none; border-radius: 4px; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button class="btn-confirm" style="padding: 0.5rem 1.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(confirmationModal);
+
+    // Update selection totals
+    function updateSelection() {
+        let total = 0;
+        const selectedGames = [];
+        
         checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateSelection);
+            if (checkbox.checked) {
+                const price = parseFloat(
+                    checkbox.closest('tr').querySelector('.price-highlight').textContent.replace('Rs. ', '')
+                );
+                total += price;
+                selectedGames.push(checkbox.closest('tr').dataset.gameId);
+            }
         });
-    
-        // Select All functionality
-        selectAll.addEventListener('change', () => {
-            checkboxes.forEach(checkbox => {
-                if (checkbox !== selectAll) {
-                    checkbox.checked = selectAll.checked;
-                }
+
+        selectedTotal.textContent = `Rs. ${total.toFixed(2)}`;
+        downloadBtn.style.display = total === 0 && selectedGames.length > 0 ? 'inline-block' : 'none';
+        paymentBtn.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+
+    // Delete selected items
+    async function deleteSelectedItems() {
+        const selectedItems = Array.from(checkboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.closest('tr').dataset.itemId);
+
+        if (!selectedItems.length) return;
+
+        try {
+            const response = await fetch('/cart/delete-selected/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ item_ids: selectedItems })
             });
-            updateSelection();
-        });
-    
-        // Download button handler
-        downloadBtn.addEventListener('click', () => {
-            const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
-                .filter(checkbox => checkbox !== selectAll)
-                .map(checkbox => checkbox.dataset.gameId);
-    
-            // Create and submit hidden form
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = "{% url 'download_free_games' %}";
-            
-            // Add CSRF token
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = '{{ csrf_token }}';
-            form.appendChild(csrfInput);
-    
-            // Add selected game IDs
-            selectedGames.forEach(gameId => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'game_ids';
-                input.value = gameId;
-                form.appendChild(input);
-            });
-    
-            document.body.appendChild(form);
-            form.submit();
-        });
-    
-        // Payment button handler
-        paymentBtn.addEventListener('click', () => {
-            // Payment processing logic remains the same
-            const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
-                .filter(checkbox => checkbox !== selectAll)
-                .map(checkbox => checkbox.dataset.gameId);
-    
-            alert(`Redirecting to payment for games: ${selectedGames.join(', ')}`);
-        });
-    
+
+            if (response.ok) {
+                selectedItems.forEach(id => {
+                    const row = document.querySelector(`tr[data-item-id="${id}"]`);
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                });
+                updateSelection();
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+        }
+    }
+
+    // Event listeners
+    checkboxes.forEach(checkbox => checkbox.addEventListener('change', updateSelection));
+    selectAll.addEventListener('change', () => {
+        checkboxes.forEach(checkbox => checkbox.checked = selectAll.checked);
         updateSelection();
     });
-    </script>
+    deleteSelectedBtn.addEventListener('click', deleteSelectedItems);
+
+    // Download handler
+    downloadBtn.addEventListener('click', () => {
+        const selectedGames = Array.from(checkboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.closest('tr').dataset.gameId);
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'download_free_games' %}";
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+
+        selectedGames.forEach(gameId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'game_ids';
+            input.value = gameId;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    });
+
+    // Single item removal
+    window.removeCartItem = (itemId) => {
+        currentItemToDelete = itemId;
+        confirmationModal.style.display = 'flex'; // Show modal 
+    };
+
+    // Modal handlers
+    confirmationModal.querySelector('.btn-confirm').addEventListener('click', async () => {
+        confirmationModal.style.display = 'none';
+        if (!currentItemToDelete) return;
+        
+        try {
+            // Get CSRF token properly
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            const response = await fetch(`/cart/remove/${currentItemToDelete}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `csrfmiddlewaretoken=${encodeURIComponent(csrfToken)}`
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const row = document.querySelector(`tr[data-item-id="${currentItemToDelete}"]`);
+                if (row) {
+                    row.style.transition = 'opacity 0.3s';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                    updateSelection();
+                }
+            } else {
+                console.error('Server error:', data.error);
+                alert('Failed to remove item: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Network error:', error);
+            alert('Network error. Please check your connection.');
+        }
+        currentItemToDelete = null;
+    });
+    confirmationModal.querySelector('.btn-cancel').addEventListener('click', () => {
+        confirmationModal.style.display = 'none';
+    });
+
+    updateSelection(); // Initial calculation
+});
+</script>
+
 {% endblock %}

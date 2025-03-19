@@ -1,4 +1,7 @@
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
+from venv import logger
+import zipfile
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -983,29 +986,69 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .models import Game
 import os
+from django.utils.text import slugify
 
 @login_required
 @require_POST
 def download_free_games(request):
     game_ids = request.POST.getlist('game_ids')
     
-    # Validate free games
+    # Validate games exist and are free
     games = Game.objects.filter(
         id__in=game_ids,
         price=0,
         cartitem__cart__customer=request.user.customer
-    )
-    
+    ).distinct()
+
     if not games.exists():
         return HttpResponse("No valid free games selected", status=400)
+
+    # Create in-memory ZIP file
+    zip_buffer = BytesIO()
     
-    # Get first game's file (simple implementation)
-    game = games.first()
-    if game.game_file:
-        if os.path.exists(game.game_file.path):
-            return FileResponse(open(game.game_file.path, 'rb'), as_attachment=True)
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for game in games:
+            if game.game_file and os.path.exists(game.game_file.path):
+                # Get safe filename
+                base_name = slugify(game.name) + os.path.splitext(game.game_file.name)[1]
+                zipf.write(game.game_file.path, arcname=base_name)
     
-    return HttpResponse("File not found", status=404)
+    # Prepare response
+    zip_buffer.seek(0)
+    response = FileResponse(zip_buffer, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="free_games.zip"'
+    response['Content-Length'] = zip_buffer.getbuffer().nbytes
+    
+    return response
+
+@require_POST
+@login_required
+def delete_selected_items(request):
+    try:
+        data = json.loads(request.body)
+        item_ids = data.get('item_ids', [])
+        CartItem.objects.filter(
+            id__in=item_ids,
+            cart__customer=request.user.customer
+        ).delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@require_POST
+@login_required
+def remove_from_cart(request, item_id):
+    try:
+        cart_item = CartItem.objects.select_related('cart').get(
+            id=item_id,
+            cart__customer=request.user.customer
+        )
+        cart_item.delete()
+        return JsonResponse({'success': True})
+    except CartItem.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 # ======================
 # Miscellaneous Views
 # ======================
