@@ -134,21 +134,21 @@
           </div>
         </div>
 
-        <!-- Purchase Section -->
+       <!-- Purchase Section -->
         <div class="purchase-section card border-0 shadow-lg">
           <div class="card-body text-center">
             <div class="d-grid gap-3">
-              <form method="post" action="{% url 'add_to_cart' game.id %}">
+              <form method="post" action="{% url 'add_to_cart' game.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button class="btn btn-lg" style="background-color: #212529; color: white;">
+                <button class="btn btn-lg w-100" style="background-color: #212529; color: white;">
                   <i class="fas fa-shopping-cart me-2"></i>
                   Buy Now - Rs. {{ game.price|floatformat:2 }}
                 </button>
               </form>
               {% if game.submission.trailer %}
                 <a href="{{ game.submission.trailer.url }}" 
-                   class="btn btn-outline-dark btn-lg py-3"
-                   target="_blank" style="color: #212529;">
+                  class="btn btn-outline-dark btn-lg w-100 py-3"
+                  target="_blank" style="color: #212529;">
                   <i class="fas fa-play-circle me-2"></i>
                   Watch Trailer
                 </a>

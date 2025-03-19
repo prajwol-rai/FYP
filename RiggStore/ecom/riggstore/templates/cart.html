@@ -1,32 +1,281 @@
 {% extends 'base.html' %}
 {% block title %}Your Cart{% endblock %}
 {% block content %}
-<div class="container py-5">
-  <h2>Your Cart</h2>
-  {% if cart.items.all %}
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Game</th>
-          <th>Quantity</th>
-          <th>Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in cart.items.all %}
-          <tr>
-            <td>{{ item.game.name }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>Rs. {{ item.game.price }}</td>
-            <td>Rs. {{ item.total_price }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
+<style>
+    .cart-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .cart-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 2rem;
+        border-bottom: 3px solid #4a5568;
+        padding-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+    }
+
+    .cart-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        overflow: hidden;
+        margin: 2rem 0;
+    }
+
+    .cart-table thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .cart-table th {
+        padding: 1.2rem 1.5rem;
+        text-align: left;
+        color: #4a5568;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+
+    .cart-table td {
+        padding: 1.5rem;
+        color: #4a5568;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .cart-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .cart-table tr:hover td {
+        background: #f8fafc;
+    }
+
+    .total-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2d3748;
+        padding: 1.5rem 0;
+        text-align: right;
+    }
+
+    .empty-cart {
+        text-align: center;
+        padding: 4rem 0;
+        color: #718096;
+    }
+
+    .empty-cart p {
+        font-size: 1.25rem;
+        margin: 0;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: inline-block;
+    }
+
+    .game-name {
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .price-highlight {
+        color: #48bb78;
+        font-weight: 600;
+    }
+
+    .checkout-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .checkout-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .checkout-btn {
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .payment-btn {
+        background: #4299e1;
+        color: white;
+    }
+    
+    .download-btn {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .select-all {
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-cell {
+        width: 40px;
+        padding-right: 0 !important;
+    }
+
+    @media (max-width: 768px) {
+        .cart-container {
+            padding: 1rem;
+            margin: 1rem;
+        }
+        
+        .cart-table td, .cart-table th {
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .cart-title {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<div class="cart-container">
+    <h2 class="cart-title">🛒 Your Cart</h2>
+    {% if cart.items.all %}
+    <div class="select-all">
+        <input type="checkbox" id="select-all" class="game-checkbox">
+        <label for="select-all">Select All Games</label>
+    </div>
+    <table class="cart-table">
+        <thead>
+            <tr>
+                <th class="checkbox-cell"></th>
+                <th>Game</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in cart.items.all %}
+            <tr>
+                <td class="checkbox-cell">
+                    <input type="checkbox" 
+                           class="game-checkbox" 
+                           data-price="{{ item.total_price }}"
+                           data-game-id="{{ item.game.id }}"
+                           {% if item.game.price == 0 %}checked{% endif %}>
+                </td>
+                <td class="game-name">{{ item.game.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td class="price-highlight">Rs. {{ item.game.price }}</td>
+                <td class="price-highlight">Rs. {{ item.total_price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-    <h4>Total: Rs. {{ cart.total_price }}</h4>
-  {% else %}
-    <p>Your cart is empty.</p>
-  {% endif %}
+    
+    <div class="checkout-section">
+        <div class="selected-total">
+            Selected Total: <span id="selected-total">Rs. 0</span>
+        </div>
+        <div class="checkout-buttons">
+            <button class="checkout-btn payment-btn" id="payment-btn" style="display: none;">
+                Proceed to Payment
+            </button>
+            <button class="checkout-btn download-btn" id="download-btn" style="display: none;">
+                Download Selected Games
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-cart">
+        <p>🎮 Your cart is empty. Start shopping!</p>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('.game-checkbox');
+    const selectAll = document.getElementById('select-all');
+    const selectedTotal = document.getElementById('selected-total');
+    const paymentBtn = document.getElementById('payment-btn');
+    const downloadBtn = document.getElementById('download-btn');
+
+    function updateSelection() {
+        let total = 0;
+        let hasPaidGames = false;
+        
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked && checkbox !== selectAll) {
+                total += parseFloat(checkbox.dataset.price);
+                if (parseFloat(checkbox.dataset.price) > 0) {
+                    hasPaidGames = true;
+                }
+            }
+        });
+
+        selectedTotal.textContent = `Rs. ${total.toFixed(2)}`;
+        
+        if (total > 0) {
+            paymentBtn.style.display = 'inline-block';
+            downloadBtn.style.display = 'none';
+        } else if (total === 0 && Array.from(checkboxes).some(c => c.checked)) {
+            downloadBtn.style.display = 'inline-block';
+            paymentBtn.style.display = 'none';
+        } else {
+            paymentBtn.style.display = 'none';
+            downloadBtn.style.display = 'none';
+        }
+    }
+
+    // Checkbox event listeners
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+
+    // Select All functionality
+    selectAll.addEventListener('change', () => {
+        checkboxes.forEach(checkbox => {
+            if (checkbox !== selectAll) {
+                checkbox.checked = selectAll.checked;
+            }
+        });
+        updateSelection();
+    });
+
+    // Download button handler
+    downloadBtn.addEventListener('click', () => {
+        const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
+            .filter(checkbox => checkbox !== selectAll)
+            .map(checkbox => checkbox.dataset.gameId);
+
+        // Add your download logic here
+        alert(`Initiating download for games: ${selectedGames.join(', ')}`);
+    });
+
+    // Payment button handler
+    paymentBtn.addEventListener('click', () => {
+        const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
+            .filter(checkbox => checkbox !== selectAll)
+            .map(checkbox => checkbox.dataset.gameId);
+
+        // Add your payment processing logic here
+        alert(`Redirecting to payment for games: ${selectedGames.join(', ')}`);
+    });
+
+    // Auto-check free games initially
+    updateSelection();
+});
+</script>
 {% endblock %}
