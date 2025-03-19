@@ -55,11 +55,22 @@
                     </li>
                 {% endif %}
             </ul>
-            <button id="cart-btn" class="btn btn-outline-light ms-2">
-                <i class="bi-cart-fill me-1"></i> Cart
-                <span class="badge bg-light text-dark ms-1 rounded-pill">0</span>
-            </button>
+
+        
+            <!-- Cart Button - Add specific ID and classes -->
+            <a href="{% url 'cart_view' %}" id="cart-btn" class="btn btn-outline-light ms-2 cart-button">
+                <i class="bi-cart-fill me-1"></i>
+                <span class="cart-count">
+                    {% if cart_item_count > 0 %}
+                        {{ cart_item_count }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </span>
+            </a>
             
         </div>
     </div>
 </nav>
+
+

@@ -64,6 +64,7 @@ class Game(models.Model):
     is_on_sale = models.BooleanField(default=False)
     developer = models.ForeignKey(Developer, on_delete=models.CASCADE)
     approved = models.BooleanField(default=False)
+    
 
     def delete(self, *args, **kwargs):
         """Delete game and its files"""
@@ -242,12 +243,18 @@ class Cart(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def total_items(self):
+        """Optimized count using database aggregation"""
+        from django.db.models import Sum
+        return self.items.aggregate(total=Sum('quantity'))['total'] or 0
+
     def total_price(self):
+        """Calculate total cart price"""
         return sum(item.total_price() for item in self.items.all())
 
     def __str__(self):
         return f"Cart of {self.customer}"
-
+    
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
@@ -258,3 +265,5 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.game.name} in cart of {self.cart.customer}"
+
+

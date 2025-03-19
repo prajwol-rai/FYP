@@ -951,22 +951,61 @@ def cart_view(request):
     cart, created = Cart.objects.get_or_create(customer=customer)
     return render(request, 'cart.html', {'cart': cart})
 
+from django.core.cache import cache
+
 @login_required
 def add_to_cart(request, game_id):
     game = get_object_or_404(Game, id=game_id)
     customer = request.user.customer
 
-    # Get or create a cart for the user
     cart, created = Cart.objects.get_or_create(customer=customer)
-
-    # Check if item already in cart
     cart_item, created = CartItem.objects.get_or_create(cart=cart, game=game)
+    
     if not created:
         cart_item.quantity += 1
         cart_item.save()
+    
+    # Clear cache for cart count
+    cache.delete(f'cart_count_{request.user.id}')
+    
+    return redirect('cart_view')
 
-    return redirect('cart_view')  
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
+@receiver([post_save, post_delete], sender=CartItem)
+def clear_cart_cache(sender, instance, **kwargs):
+    user = instance.cart.customer.user
+    cache.delete(f'cart_count_{user.id}')
+
+from django.http import FileResponse, HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from .models import Game
+import os
+
+@login_required
+@require_POST
+def download_free_games(request):
+    game_ids = request.POST.getlist('game_ids')
+    
+    # Validate free games
+    games = Game.objects.filter(
+        id__in=game_ids,
+        price=0,
+        cartitem__cart__customer=request.user.customer
+    )
+    
+    if not games.exists():
+        return HttpResponse("No valid free games selected", status=400)
+    
+    # Get first game's file (simple implementation)
+    game = games.first()
+    if game.game_file:
+        if os.path.exists(game.game_file.path):
+            return FileResponse(open(game.game_file.path, 'rb'), as_attachment=True)
+    
+    return HttpResponse("File not found", status=404)
 # ======================
 # Miscellaneous Views
 # ======================

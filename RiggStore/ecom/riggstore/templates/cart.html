@@ -205,77 +205,97 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const checkboxes = document.querySelectorAll('.game-checkbox');
-    const selectAll = document.getElementById('select-all');
-    const selectedTotal = document.getElementById('selected-total');
-    const paymentBtn = document.getElementById('payment-btn');
-    const downloadBtn = document.getElementById('download-btn');
-
-    function updateSelection() {
-        let total = 0;
-        let hasPaidGames = false;
-        
-        checkboxes.forEach(checkbox => {
-            if (checkbox.checked && checkbox !== selectAll) {
-                total += parseFloat(checkbox.dataset.price);
-                if (parseFloat(checkbox.dataset.price) > 0) {
-                    hasPaidGames = true;
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkboxes = document.querySelectorAll('.game-checkbox');
+        const selectAll = document.getElementById('select-all');
+        const selectedTotal = document.getElementById('selected-total');
+        const paymentBtn = document.getElementById('payment-btn');
+        const downloadBtn = document.getElementById('download-btn');
+    
+        function updateSelection() {
+            let total = 0;
+            let hasPaidGames = false;
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked && checkbox !== selectAll) {
+                    total += parseFloat(checkbox.dataset.price);
+                    if (parseFloat(checkbox.dataset.price) > 0) {
+                        hasPaidGames = true;
+                    }
                 }
+            });
+    
+            selectedTotal.textContent = `Rs. ${total.toFixed(2)}`;
+            
+            if (total > 0) {
+                paymentBtn.style.display = 'inline-block';
+                downloadBtn.style.display = 'none';
+            } else if (total === 0 && Array.from(checkboxes).some(c => c.checked)) {
+                downloadBtn.style.display = 'inline-block';
+                paymentBtn.style.display = 'none';
+            } else {
+                paymentBtn.style.display = 'none';
+                downloadBtn.style.display = 'none';
             }
-        });
-
-        selectedTotal.textContent = `Rs. ${total.toFixed(2)}`;
-        
-        if (total > 0) {
-            paymentBtn.style.display = 'inline-block';
-            downloadBtn.style.display = 'none';
-        } else if (total === 0 && Array.from(checkboxes).some(c => c.checked)) {
-            downloadBtn.style.display = 'inline-block';
-            paymentBtn.style.display = 'none';
-        } else {
-            paymentBtn.style.display = 'none';
-            downloadBtn.style.display = 'none';
         }
-    }
-
-    // Checkbox event listeners
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelection);
-    });
-
-    // Select All functionality
-    selectAll.addEventListener('change', () => {
+    
+        // Checkbox event listeners
         checkboxes.forEach(checkbox => {
-            if (checkbox !== selectAll) {
-                checkbox.checked = selectAll.checked;
-            }
+            checkbox.addEventListener('change', updateSelection);
         });
+    
+        // Select All functionality
+        selectAll.addEventListener('change', () => {
+            checkboxes.forEach(checkbox => {
+                if (checkbox !== selectAll) {
+                    checkbox.checked = selectAll.checked;
+                }
+            });
+            updateSelection();
+        });
+    
+        // Download button handler
+        downloadBtn.addEventListener('click', () => {
+            const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
+                .filter(checkbox => checkbox !== selectAll)
+                .map(checkbox => checkbox.dataset.gameId);
+    
+            // Create and submit hidden form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "{% url 'download_free_games' %}";
+            
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = '{{ csrf_token }}';
+            form.appendChild(csrfInput);
+    
+            // Add selected game IDs
+            selectedGames.forEach(gameId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'game_ids';
+                input.value = gameId;
+                form.appendChild(input);
+            });
+    
+            document.body.appendChild(form);
+            form.submit();
+        });
+    
+        // Payment button handler
+        paymentBtn.addEventListener('click', () => {
+            // Payment processing logic remains the same
+            const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
+                .filter(checkbox => checkbox !== selectAll)
+                .map(checkbox => checkbox.dataset.gameId);
+    
+            alert(`Redirecting to payment for games: ${selectedGames.join(', ')}`);
+        });
+    
         updateSelection();
     });
-
-    // Download button handler
-    downloadBtn.addEventListener('click', () => {
-        const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
-            .filter(checkbox => checkbox !== selectAll)
-            .map(checkbox => checkbox.dataset.gameId);
-
-        // Add your download logic here
-        alert(`Initiating download for games: ${selectedGames.join(', ')}`);
-    });
-
-    // Payment button handler
-    paymentBtn.addEventListener('click', () => {
-        const selectedGames = Array.from(document.querySelectorAll('.game-checkbox:checked'))
-            .filter(checkbox => checkbox !== selectAll)
-            .map(checkbox => checkbox.dataset.gameId);
-
-        // Add your payment processing logic here
-        alert(`Redirecting to payment for games: ${selectedGames.join(', ')}`);
-    });
-
-    // Auto-check free games initially
-    updateSelection();
-});
-</script>
+    </script>
 {% endblock %}
