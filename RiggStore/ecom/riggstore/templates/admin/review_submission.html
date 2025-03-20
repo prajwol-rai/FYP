@@ -2,121 +2,124 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header">
-            <h3>Review Submission: {{ submission.title }}</h3>
-        </div>
-        
-        <div class="card-body">
-            <div class="row">
-                <!-- Main Submission Details -->
-                <div class="col-md-8">
-                    <div class="mb-4">
-                        <h4>Game Details</h4>
-                        <dl class="row">
-                            <dt class="col-sm-3">Developer</dt>
-                            <dd class="col-sm-9">{{ submission.developer.user.user.username }}</dd>
-                            
-                            <dt class="col-sm-3">Version</dt>
-                            <dd class="col-sm-9">{{ submission.version }}</dd>
-                            
-                            <dt class="col-sm-3">Submitted</dt>
-                            <dd class="col-sm-9">{{ submission.submitted_at|date:"F j, Y H:i" }}</dd>
-                            
-                            <dt class="col-sm-3">Description</dt>
-                            <dd class="col-sm-9">{{ submission.description }}</dd>
-                        </dl>
-                    </div>
-
-                    <div class="mb-4">
-                        <h4>System Requirements</h4>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h5>Minimum</h5>
-                                <ul class="list-unstyled">
-                                    <li><strong>OS:</strong> {{ submission.min_os }}</li>
-                                    <li><strong>Processor:</strong> {{ submission.min_processor }}</li>
-                                    <li><strong>RAM:</strong> {{ submission.min_ram }}</li>
-                                    <li><strong>GPU:</strong> {{ submission.min_gpu }}</li>
-                                    <li><strong>DirectX:</strong> {{ submission.min_directx }}</li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <h5>Recommended</h5>
-                                <ul class="list-unstyled">
-                                    <li><strong>OS:</strong> {{ submission.rec_os }}</li>
-                                    <li><strong>Processor:</strong> {{ submission.rec_processor }}</li>
-                                    <li><strong>RAM:</strong> {{ submission.rec_ram }}</li>
-                                    <li><strong>GPU:</strong> {{ submission.rec_gpu }}</li>
-                                    <li><strong>DirectX:</strong> {{ submission.rec_directx }}</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sidebar with Actions -->
-                <div class="col-md-4">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Review Actions</h5>
-                            <form id="review-form" method="POST">
-                                {% csrf_token %}
-                                <div class="d-grid gap-2">
-                                    <button type="button" name="approve" class="btn btn-success action-btn" data-action="approve">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                    <button type="button" name="reject" class="btn btn-danger action-btn" data-action="reject">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </div>
-                                <!-- Hidden inputs for action and confirmation flag -->
-                                <input type="hidden" name="action" id="action-input" value="">
-                                <input type="hidden" name="confirmed" id="confirmed-input" value="false">
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Files</h5>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item">
-                                    <strong>Game File:</strong> 
-                                    <a href="{{ submission.game_file.url }}" target="_blank">
-                                        {{ submission.game_file.name }}
-                                    </a>
-                                </li>
-                                {% if submission.trailer %}
-                                <li class="list-group-item">
-                                    <strong>Trailer:</strong>
-                                    <a href="{{ submission.trailer.url }}" target="_blank">
-                                        {{ submission.trailer.name }}
-                                    </a>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+<div id="review-page">
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>Review Submission: {{ submission.title }}</h3>
             </div>
+            
+            <div class="card-body">
+                <div class="row">
+                    <!-- Main Submission Details -->
+                    <div class="col-md-8">
+                        <div class="mb-4">
+                            <h4>Game Details</h4>
+                            <dl class="row">
+                                <dt class="col-sm-3">Developer</dt>
+                                <dd class="col-sm-9">{{ submission.developer.user.user.username }}</dd>
+                                
+                                <dt class="col-sm-3">Version</dt>
+                                <dd class="col-sm-9">{{ submission.version }}</dd>
+                                
+                                <dt class="col-sm-3">Submitted</dt>
+                                <dd class="col-sm-9">{{ submission.submitted_at|date:"F j, Y H:i" }}</dd>
+                                
+                                <dt class="col-sm-3">Description</dt>
+                                <dd class="col-sm-9">{{ submission.description }}</dd>
+                            </dl>
+                        </div>
 
-            <!-- Screenshots Section -->
-            <div class="mt-4">
-                <h4>Screenshots</h4>
-                <div class="row row-cols-1 row-cols-md-3 g-4">
-                    {% for screenshot in submission.gamescreenshot_set.all %}
-                    <div class="col">
-                        <div class="card h-100">
-                            <img src="{{ screenshot.image.url }}" class="card-img-top" alt="Game screenshot" style="max-height: 200px; object-fit: cover;">
+                        <div class="mb-4">
+                            <h4>System Requirements</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Minimum</h5>
+                                    <ul class="list-unstyled">
+                                        <li><strong>OS:</strong> {{ submission.min_os }}</li>
+                                        <li><strong>Processor:</strong> {{ submission.min_processor }}</li>
+                                        <li><strong>RAM:</strong> {{ submission.min_ram }}</li>
+                                        <li><strong>GPU:</strong> {{ submission.min_gpu }}</li>
+                                        <li><strong>DirectX:</strong> {{ submission.min_directx }}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Recommended</h5>
+                                    <ul class="list-unstyled">
+                                        <li><strong>OS:</strong> {{ submission.rec_os }}</li>
+                                        <li><strong>Processor:</strong> {{ submission.rec_processor }}</li>
+                                        <li><strong>RAM:</strong> {{ submission.rec_ram }}</li>
+                                        <li><strong>GPU:</strong> {{ submission.rec_gpu }}</li>
+                                        <li><strong>DirectX:</strong> {{ submission.rec_directx }}</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="col-12">
-                        <div class="alert alert-info">No screenshots available</div>
+
+                    <!-- Sidebar with Actions -->
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Review Actions</h5>
+                                <form id="review-form" method="POST">
+                                    {% csrf_token %}
+                                    <div class="d-grid gap-2">
+                                        <button type="button" name="approve" class="btn btn-success action-btn" data-action="approve">
+                                            <i class="fas fa-check button-icon"></i> Approve
+                                        </button>
+                                        <button type="button" name="reject" class="btn btn-danger action-btn" data-action="reject">
+                                            <i class="fas fa-times button-icon"></i> Reject
+                                        </button>
+                                    </div>
+                                    <!-- Hidden inputs for action and confirmation flag -->
+                                    <input type="hidden" name="action" id="action-input" value="">
+                                    <input type="hidden" name="confirmed" id="confirmed-input" value="false">
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Files</h5>
+                                <ul class="list-unstyled">
+                                    <li>
+                                        <i class="bi bi-file-zip-fill button-icon me-2"></i>
+                                        <span>Game File:</span>
+                                        <a href="{{ game.file.url }}" class="btn btn-outline-secondary btn-sm ms-2" download>
+                                            <i class="bi bi-download button-icon"></i> Download
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-file-play-fill button-icon me-2"></i>
+                                        <span>Trailer:</span>
+                                        <a href="{{ game.trailer.url }}" class="btn btn-outline-secondary btn-sm ms-2" target="_blank">
+                                            <i class="bi bi-play-circle button-icon"></i> Watch
+                                        </a>
+                                    </li>
+                                </ul>
+                                
+                            </div>
+                        </div>
                     </div>
-                    {% endfor %}
+                </div>
+
+                <!-- Screenshots Section -->
+                <div class="mt-4">
+                    <h4>Screenshots</h4>
+                    <div class="row row-cols-1 row-cols-md-3 g-4">
+                        {% for screenshot in submission.gamescreenshot_set.all %}
+                        <div class="col">
+                            <div class="card h-100">
+                                <img src="{{ screenshot.image.url }}" class="card-img-top" alt="Game screenshot" style="max-height: 200px; object-fit: cover;">
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="alert alert-info">No screenshots available</div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,8 +145,6 @@
   </div>
 </div>
 
-<!-- Bootstrap Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Custom JavaScript for Confirmation -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -178,171 +179,123 @@
 </script>
 
 <style>
-    .container-review {
-        padding: 150px;
+    /* Container and Card Styles */
+    #review-page .container {
+        padding-top: 60px;
+        padding-bottom: 60px;
+        max-width: 1520px;
     }
-
-    .card {
+    #review-page .card {
         border: none;
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        transition: transform 0.3s ease;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease, box-shadow 0.3s ease;
+        background-color: #fff;
     }
-
-    .card:hover {
-        transform: translateY(-2px);
+    #review-page .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     }
-
-    .card-header {
-        background: linear-gradient(135deg, #212529, #113044);
-        color: white;
+    #review-page .card-header {
+        background: #3a485c;
+        color: #fff;
         padding: 1.5rem;
         border-bottom: none;
+        border-radius: 12px 12px 0 0;
     }
-
-    .card-header h3 {
+    #review-page .card-header h3 {
+        padding: 20px;
         margin: 0;
         font-weight: 600;
-        letter-spacing: -0.025em;
+        font-size: 1.75rem;
     }
-
-    /* Form Styles */
-    .form-label {
-        font-weight: 500;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-control {
-        border: 2px solid #e2e8f0;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        transition: border-color 0.3s ease;
-    }
-
-    .form-control:focus {
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
-
-    /* Buttons */
-    .btn {
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
+    /* Button and Icon Styles */
+    #review-page .btn {
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
         gap: 0.5rem;
         justify-content: center;
+        font-size: 1rem;
     }
-
-    .btn-success {
-        background: #27ae60;
-        border-color: #27ae60;
+    #review-page .btn-success {
+        background-color: #2ecc71;
+        border: none;
     }
-
-    .btn-danger {
-        background: #e74c3c;
-        border-color: #e74c3c;
+    #review-page .btn-danger {
+        background-color: #e74c3c;
+        border: none;
     }
-
-    .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    #review-page .btn-primary {
+        background-color: #3498db;
+        border: none;
     }
-
-    /* System Requirements */
-    .system-requirements {
-        background: #f8f9fa;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin: 1rem 0;
+    #review-page .btn-secondary {
+        background-color: #95a5a6;
+        border: none;
     }
-
-    .system-requirements h5 {
+    #review-page .btn:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+    }
+    /* Text and List Styles */
+    #review-page h4, 
+    #review-page h5 {
+        font-weight: 600;
         color: #2c3e50;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 0.5rem;
-        margin-bottom: 1rem;
     }
-
-    .list-unstyled li {
+    #review-page dl dt {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    #review-page dl dd {
+        color: #555;
+    }
+    #review-page ul.list-unstyled li {
         padding: 0.5rem 0;
         border-bottom: 1px solid #eee;
     }
-
-    /* Screenshots Grid */
-    .screenshot-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1.5rem;
-    }
-
-    .screenshot-card {
-        border-radius: 0.75rem;
-        overflow: hidden;
-        transition: transform 0.3s ease;
-        position: relative;
-    }
-
-    .screenshot-card:hover {
-        transform: translateY(-3px);
-    }
-
-    .screenshot-card img {
-        width: 100%;
+    /* Screenshot Image Styles */
+    #review-page .card-img-top {
+        border-radius: 10px;
         height: 200px;
         object-fit: cover;
-        border-radius: 0.75rem;
+        transition: transform 0.3s ease;
     }
-
-    /* File Links */
-    .list-group-item {
-        border: none;
-        padding: 1rem;
-        background: #f8f9fa;
-        margin: 0.5rem 0;
-        border-radius: 0.5rem!important;
+    #review-page .card-img-top:hover {
+        transform: scale(1.03);
     }
-
-    .list-group-item a {
-        color: #3498db;
-        text-decoration: none;
-        font-weight: 500;
+    /* Modal Styles */
+    #review-page .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     }
-
-    .list-group-item a:hover {
-        text-decoration: underline;
+    #review-page .modal-header {
+        background-color: #2c3e50;
+        color: #fff;
+        border-radius: 12px 12px 0 0;
     }
-
-    /* Debug Section */
-    .debug-info {
-        background: #f8f9fa;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin-top: 2rem;
-        font-size: 0.9rem;
+    #review-page .modal-footer .btn-primary {
+        background-color: #3498db;
     }
-
-    .debug-info h5 {
-        color: #e74c3c;
-        margin-bottom: 1rem;
+    #review-page .modal-footer .btn-secondary {
+        background-color: #95a5a6;
     }
-
-    /* Responsive Adjustments */
     @media (max-width: 768px) {
-        .card-header h3 {
+        #review-page .card-header h3 {
             font-size: 1.5rem;
         }
-        
-        .col-md-8, .col-md-4 {
-            width: 100%;
-            max-width: 100%;
-            flex: 0 0 100%;
-        }
+    }
+   
+    .button-icon {
+        font-size: 1.1rem;
+        margin-right: 0.3rem;
+        color: inherit;
+        display: inline-flex;
+        align-items: center;
     }
 </style>
 
