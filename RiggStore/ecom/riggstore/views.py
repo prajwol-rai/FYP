@@ -799,42 +799,51 @@ def delete_submission(request, submission_id):
 def review_submissions(request):
     submissions = GameSubmission.objects.filter(status='pending').prefetch_related('categories')
     return render(request, 'admin/review_submissions.html', {'submissions': submissions})
-
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def review_submission(request, submission_id):
     submission = get_object_or_404(
         GameSubmission.objects.select_related('developer__user')
-                            .prefetch_related('categories', 'gamescreenshot_set'),
+                              .prefetch_related('categories', 'gamescreenshot_set'),
         id=submission_id
     )
 
     if request.method == 'POST':
+        confirmed = request.POST.get('confirmed', 'false')
+        if confirmed != 'true':
+            messages.error(request, "Action not confirmed.")
+            return redirect('review_submission', submission_id=submission_id)
+
         action = request.POST.get('action')
         notes = request.POST.get('notes', '')
 
         try:
             if action == 'approve':
-                if submission.status != 'approved':
-                    # Create or update the game with submission reference
-                    game, created = Game.objects.update_or_create(
-                        submission=submission,
-                        defaults={
-                            'name': submission.title,
-                            'description': submission.description,
-                            'developer': submission.developer,
-                            'price': submission.price,
-                            'image': submission.thumbnail,
-                            'approved': True,
-                            'sale_price': 0.00,
-                            'is_on_sale': False
-                        }
-                    )
-                    game.categories.set(submission.categories.all())
-                    submission.status = 'approved'
-                    messages.success(request, 'Game approved and published!')
+                if submission.status != 'pending':
+                    messages.error(request, "Only pending submissions can be approved.")
+                    return redirect('review_submission', submission_id=submission_id)
 
+                game, created = Game.objects.update_or_create(
+                    submission=submission,
+                    defaults={
+                        'name': submission.title,
+                        'description': submission.description,
+                        'developer': submission.developer,
+                        'price': submission.price,
+                        'image': submission.thumbnail,
+                        'approved': True,
+                        'sale_price': Decimal('0.00'),
+                        'is_on_sale': False
+                    }
+                )
+                game.categories.set(submission.categories.all())
+                submission.status = 'approved'
+                messages.success(request, 'Game approved and published!')
             elif action == 'reject':
+                if submission.status != 'pending':
+                    messages.error(request, "Only pending submissions can be rejected.")
+                    return redirect('review_submission', submission_id=submission_id)
+
                 submission.status = 'rejected'
                 messages.warning(request, 'Submission rejected.')
 
@@ -846,7 +855,8 @@ def review_submission(request, submission_id):
             messages.error(request, f'Error: {str(e)}')
             return redirect('review_submissions')
 
-    return render(request, 'review_submission.html', {
+    # Ensure the path to the template is correct
+    return render(request, 'admin/review_submission.html', {
         'submission': submission,
         'categories': submission.categories.all()
     })
