@@ -407,19 +407,4 @@
 </script>
 
 
-<script>
-function togglePassword(fieldId) {
-    const passwordInput = document.getElementById(fieldId);
-    const eyeIcon = document.querySelector(`#${fieldId} + .toggle-password i`);
-
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
-    } else {
-        passwordInput.type = "password";
-        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
-    }
-}
-</script>
-
 {% endblock %}

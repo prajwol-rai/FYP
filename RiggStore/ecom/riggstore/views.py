@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
+from typing import Self
 from venv import logger
 import zipfile
 from django.forms import ValidationError
@@ -78,10 +79,47 @@ def signup_user(request):
                         defaults={'company_name': '', 'approved': False}
                     )
 
+                # Set welcome email subject and message based on account type
+                subject = f"Welcome to RiggStore, {user.first_name}!"
+                if form.cleaned_data['account_type'] == 'developer':
+                    message = f"""Hello {user.first_name},
+
+🎮 Welcome to RiggStore Developer Community! 🚀
+
+Your developer account has been successfully created. Here's what you can do next:
+1. Submit your games through our developer portal
+2. Access analytics for your published games
+3. Connect with our player community
+4. Get early access to developer resources and SDKs
+
+We're excited to see what amazing games you'll bring to our platform! Our team will review your developer application and get back to you within 3-5 business days.
+
+Need help? Reach out to our developer support team at dev-support@riggstore.com
+
+Happy developing!
+The RiggStore Team"""
+                else:
+                    message = f"""Hello {user.first_name},
+
+🕹️ Welcome to RiggStore! Your gaming adventure begins now! 🎉
+
+As a RiggStore member, you get:
+✅ Exclusive access to weekly game deals
+✅ Curated recommendations based on your preferences
+✅ Wishlist and tracking features
+✅ Early access to sales and promotions
+
+Start exploring thousands of games in our catalog - new members get 15% off their first purchase with code WELCOME15!
+
+Need help? Our support team is always ready at support@riggstore.com
+
+Happy gaming!
+The RiggStore Team"""
+
                 # Send welcome email
                 send_mail(
-                    "Welcome to RiggStore!",
-                    f"Hello {user.first_name},\n\nAccount created as {form.cleaned_data['account_type']}!",
+                    subject,
+                    message,
                     settings.EMAIL_HOST_USER,
                     [user.email],
                     fail_silently=False
