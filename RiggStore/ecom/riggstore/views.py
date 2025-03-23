@@ -33,12 +33,21 @@ def home(request):
     games = Game.objects.filter(approved=True)
     return render(request, 'home.html', {'games': games})
 
-# Handle user signup, create a new user and Customer instance.
+from django.contrib.auth import login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.core.mail import send_mail
+from django.conf import settings
+from django.db import IntegrityError
+from .forms import SignUpForm  # Ensure you have your form imported
+from .models import User, Customer, Developer  # Ensure the models are imported
+
 def signup_user(request):
     if request.method == "POST":
         form = SignUpForm(request.POST)
         if form.is_valid():
             try:
+                # Create User
                 user = User.objects.create_user(
                     username=form.cleaned_data['username'],
                     password=form.cleaned_data['password1'],
@@ -46,20 +55,47 @@ def signup_user(request):
                     last_name=form.cleaned_data['last_name'],
                     email=form.cleaned_data['email']
                 )
-                customer = user.customer  
-                customer.phone = form.cleaned_data['phone']
-                customer.save()
-                
+
+                # Create/Update Customer
+                Customer.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        'f_name': form.cleaned_data['first_name'],
+                        'l_name': form.cleaned_data['last_name'],
+                        'email': form.cleaned_data['email'],
+                        'phone': form.cleaned_data['phone']
+                    }
+                )
+
+                # Create Developer if needed
                 if form.cleaned_data['account_type'] == 'developer':
-                    Developer.objects.create(user=customer, company_name='', approved=False)
-                    
+                    Developer.objects.update_or_create(
+                        user=user,
+                        defaults={'company_name': '', 'approved': False}
+                    )
+
+                # Send welcome email
+                send_mail(
+                    "Welcome to RiggStore!",
+                    f"Hello {user.first_name},\n\nThank you for joining!",
+                    settings.EMAIL_HOST_USER,
+                    [user.email],
+                    fail_silently=False
+                )
+
+                # Log in the user
                 login(request, user)
                 messages.success(request, "Account Created Successfully")
                 return redirect('home')
+
+            except IntegrityError:
+                messages.error(request, "User already exists!")
             except Exception as e:
-                messages.error(request, f"Error creating account: {str(e)}")
+                messages.error(request, f"Server error: {str(e)}")
         else:
-            messages.error(request, "Invalid form data. Please check your inputs.")
+            # Pass invalid form back to template with errors
+            return render(request, 'signup.html', {'form': form})
+
     return render(request, 'signup.html', {'form': SignUpForm()})
 
 # Handle user login, authenticate and redirect appropriately.
@@ -561,8 +597,13 @@ def delete_submission(request, submission_id):
 @user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def delete_user(request, user_id):
     try:
-        user = Customer.objects.get(id=user_id)
-        user.delete()
+        # Get the Customer object
+        customer = Customer.objects.get(id=user_id)
+        
+        # Delete the associated User
+        user = customer.user
+        user.delete()  # This will cascade delete the Customer if models are set up properly
+        
         messages.success(request, "User deleted successfully.")
     except Customer.DoesNotExist:
         messages.error(request, "User not found.")

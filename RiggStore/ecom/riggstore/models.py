@@ -24,7 +24,7 @@ class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer', null=True, blank=True)
     f_name = models.CharField(max_length=50)
     l_name = models.CharField(max_length=50)
-    email = models.EmailField(max_length=100)
+    email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
     image = models.ImageField(upload_to='profile_pics', default='default.jpg')
 

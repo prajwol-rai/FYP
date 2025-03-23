@@ -10,6 +10,12 @@ ACCOUNT_TYPE_CHOICES = [
 ]
 
 # Form for user signup, extending the default UserCreationForm.
+ACCOUNT_TYPE_CHOICES = [
+    ('buyer', 'Buyer'),
+    ('developer', 'Game Developer'),
+]
+
+# Form for user signup, extending the default UserCreationForm.
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(
         label="",
@@ -49,7 +55,7 @@ class SignUpForm(UserCreationForm):
             'placeholder': 'User Name'
         })
         self.fields['username'].label = ''
-        self.fields['username'].help_text = 'Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'
+        self.fields['username'].help_text = 'Required. 150 characters or fewer. Letters, digits, and @/./+/-/_ only.'
 
         # Update attributes for password fields
         for password_field in ['password1', 'password2']:
@@ -59,6 +65,35 @@ class SignUpForm(UserCreationForm):
             })
             self.fields[password_field].label = ''
 
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("Username already exists!")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+
+        # Validate if email exists in Customer table
+        if Customer.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already registered!")
+
+        # Validate length
+        if len(email) > 100:
+            raise forms.ValidationError("Email must be under 100 characters")
+
+        # Validate domain
+        if not email.endswith('@gmail.com'):
+            raise forms.ValidationError("Only Gmail addresses allowed")
+        
+        return email
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if not phone.isdigit() or len(phone) != 10:
+            raise forms.ValidationError("Phone must be 10 digits")
+        return phone
+    
 # Form for editing user details, extending the default UserChangeForm.
 class UserEditForm(UserChangeForm):
     class Meta:
