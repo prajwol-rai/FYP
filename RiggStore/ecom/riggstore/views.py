@@ -42,6 +42,10 @@ from django.db import IntegrityError
 from .forms import SignUpForm  # Ensure you have your form imported
 from .models import User, Customer, Developer  # Ensure the models are imported
 
+from django.db import IntegrityError
+from django.contrib.auth import login, authenticate
+from django.core.mail import send_mail
+
 def signup_user(request):
     if request.method == "POST":
         form = SignUpForm(request.POST)
@@ -56,8 +60,8 @@ def signup_user(request):
                     email=form.cleaned_data['email']
                 )
 
-                # Create/Update Customer
-                Customer.objects.update_or_create(
+                # Create Customer
+                customer, created = Customer.objects.get_or_create(
                     user=user,
                     defaults={
                         'f_name': form.cleaned_data['first_name'],
@@ -69,33 +73,32 @@ def signup_user(request):
 
                 # Create Developer if needed
                 if form.cleaned_data['account_type'] == 'developer':
-                    Developer.objects.update_or_create(
-                        user=user,
+                    Developer.objects.get_or_create(
+                        user=customer,  # Use customer instance here
                         defaults={'company_name': '', 'approved': False}
                     )
 
                 # Send welcome email
                 send_mail(
                     "Welcome to RiggStore!",
-                    f"Hello {user.first_name},\n\nThank you for joining!",
+                    f"Hello {user.first_name},\n\nAccount created as {form.cleaned_data['account_type']}!",
                     settings.EMAIL_HOST_USER,
                     [user.email],
                     fail_silently=False
                 )
 
-                # Log in the user
                 login(request, user)
                 messages.success(request, "Account Created Successfully")
                 return redirect('home')
 
-            except IntegrityError:
-                messages.error(request, "User already exists!")
+            except IntegrityError as e:
+                messages.error(request, "Account creation failed. Please try different credentials.")
             except Exception as e:
-                messages.error(request, f"Server error: {str(e)}")
-        else:
-            # Pass invalid form back to template with errors
+                messages.error(request, f"Error: {str(e)}")
             return render(request, 'signup.html', {'form': form})
-
+        else:
+            return render(request, 'signup.html', {'form': form})
+    
     return render(request, 'signup.html', {'form': SignUpForm()})
 
 # Handle user login, authenticate and redirect appropriately.

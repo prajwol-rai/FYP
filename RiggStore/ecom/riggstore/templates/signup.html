@@ -2,100 +2,6 @@
 {% load static %}
 
 {% block content %}
-<div class="main-container">
-    <div class="left-panel">
-        <img src="{% static '/images/signupimg.png' %}" alt="gaming illustration" />
-    </div>
-    <div class="right-panel">
-        <h2>Join RiggStore</h2>
-        <form id="signup-form" method="post">
-            {% csrf_token %}
-            
-            <!-- Username -->
-            <div class="form-group">
-                <label for="id_username">Username</label>
-                <input type="text" name="username" id="id_username" 
-                       class="form-input" placeholder="Enter username"
-                       required>
-                <small class="form-help">{{ form.username.help_text|safe }}</small>
-            </div>
-
-            <!-- Name Fields -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="id_first_name">First Name</label>
-                    <input type="text" name="first_name" id="id_first_name" 
-                           class="form-input" placeholder="First name" required>
-                </div>
-                <div class="form-group">
-                    <label for="id_last_name">Last Name</label>
-                    <input type="text" name="last_name" id="id_last_name" 
-                           class="form-input" placeholder="Last name" required>
-                </div>
-            </div>
-
-            <!-- Email -->
-            <div class="form-group">
-                <label for="id_email">Email</label>
-                <input type="email" name="email" id="id_email" 
-                       class="form-input" placeholder="Email address" required>
-            </div>
-
-            <!-- Phone -->
-            <div class="form-group">
-                <label for="id_phone">Phone</label>
-                <input type="tel" name="phone" id="id_phone" 
-                       class="form-input" placeholder="Phone number" required>
-            </div>
-
-            <!-- Account Type -->
-            <div class="form-group account-type">
-                <label>Account Type</label>
-                <div class="radio-group">
-                    <label class="radio-option">
-                        <input type="radio" name="account_type" value="buyer" required>
-                        <span class="radio-label">Buyer</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="account_type" value="developer" required>
-                        <span class="radio-label">Developer</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Passwords -->
-            <div class="form-group">
-                <label for="id_password1">Password</label>
-                <div class="password-container">
-                    <input type="password" name="password1" id="id_password1" 
-                           class="password-input" placeholder="Create password" required>
-                    <button type="button" class="toggle-password" onclick="togglePassword('id_password1')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                <small class="form-help">{{ form.password1.help_text|safe }}</small>
-            </div>
-
-            <div class="form-group">
-                <label for="id_password2">Confirm Password</label>
-                <div class="password-container">
-                    <input type="password" name="password2" id="id_password2" 
-                           class="password-input" placeholder="Confirm password" required>
-                    <button type="button" class="toggle-password" onclick="togglePassword('id_password2')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <button class="button" type="submit">Create Account</button>
-
-            <div class="login-links">
-                <p>Already have an account? <a href="{% url 'login' %}">Sign In</a></p>
-            </div>
-        </form>
-    </div>
-</div>
-
 <style>
     :root {
         --primary-color: #2563eb;
@@ -320,6 +226,186 @@
         }
     }
 </style>
+
+<div class="main-container">
+    <div class="left-panel">
+        <img src="{% static '/images/signupimg.png' %}" alt="Gaming illustration">
+    </div>
+    
+    <div class="right-panel">
+        <h2>Join RiggStore</h2>
+        
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form id="signup-form" method="post">
+            {% csrf_token %}
+            
+            <!-- Username -->
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" 
+                       class="form-input {% if form.username.errors %}input-error{% endif %}" 
+                       placeholder="Enter username"
+                       value="{{ form.username.value|default:'' }}"
+                       required>
+                {% if form.username.errors %}
+                    <div class="error-message">
+                        {{ form.username.errors.0 }}
+                    </div>
+                {% endif %}
+                <small class="form-help">{{ form.username.help_text|safe }}</small>
+            </div>
+
+            <!-- Name Fields -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_first_name">First Name</label>
+                    <input type="text" name="first_name" id="id_first_name" 
+                           class="form-input {% if form.first_name.errors %}input-error{% endif %}" 
+                           placeholder="First name" 
+                           value="{{ form.first_name.value|default:'' }}"
+                           required>
+                    {% if form.first_name.errors %}
+                        <div class="error-message">
+                            {{ form.first_name.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="id_last_name">Last Name</label>
+                    <input type="text" name="last_name" id="id_last_name" 
+                           class="form-input {% if form.last_name.errors %}input-error{% endif %}" 
+                           placeholder="Last name" 
+                           value="{{ form.last_name.value|default:'' }}"
+                           required>
+                    {% if form.last_name.errors %}
+                        <div class="error-message">
+                            {{ form.last_name.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" name="email" id="id_email" 
+                       class="form-input {% if form.email.errors %}input-error{% endif %}" 
+                       placeholder="Email address" 
+                       value="{{ form.email.value|default:'' }}"
+                       required>
+                {% if form.email.errors %}
+                    <div class="error-message">
+                        {{ form.email.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Phone -->
+            <div class="form-group">
+                <label for="id_phone">Phone</label>
+                <input type="tel" name="phone" id="id_phone" 
+                       class="form-input {% if form.phone.errors %}input-error{% endif %}" 
+                       placeholder="Phone number" 
+                       value="{{ form.phone.value|default:'' }}"
+                       required>
+                {% if form.phone.errors %}
+                    <div class="error-message">
+                        {{ form.phone.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Account Type -->
+            <div class="form-group account-type">
+                <label>Account Type</label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="account_type" value="buyer" 
+                               {% if form.account_type.value == 'buyer' %}checked{% endif %} required>
+                        <span class="radio-label">Buyer</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="account_type" value="developer" 
+                               {% if form.account_type.value == 'developer' %}checked{% endif %} required>
+                        <span class="radio-label">Developer</span>
+                    </label>
+                </div>
+                {% if form.account_type.errors %}
+                    <div class="error-message">
+                        {{ form.account_type.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Passwords -->
+            <div class="form-group">
+                <label for="id_password1">Password</label>
+                <div class="password-container">
+                    <input type="password" name="password1" id="id_password1" 
+                           class="password-input {% if form.password1.errors %}input-error{% endif %}" 
+                           placeholder="Create password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('id_password1')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                {% if form.password1.errors %}
+                    <div class="error-message">
+                        {{ form.password1.errors.0 }}
+                    </div>
+                {% endif %}
+                <small class="form-help">{{ form.password1.help_text|safe }}</small>
+            </div>
+
+            <div class="form-group">
+                <label for="id_password2">Confirm Password</label>
+                <div class="password-container">
+                    <input type="password" name="password2" id="id_password2" 
+                           class="password-input {% if form.password2.errors %}input-error{% endif %}" 
+                           placeholder="Confirm password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('id_password2')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                {% if form.password2.errors %}
+                    <div class="error-message">
+                        {{ form.password2.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <button class="button" type="submit">Create Account</button>
+
+            <div class="login-links">
+                <p>Already have an account? <a href="{% url 'login' %}">Sign In</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function togglePassword(fieldId) {
+        const passwordInput = document.getElementById(fieldId);
+        const eyeIcon = passwordInput.nextElementSibling.querySelector('i');
+        
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
+        } else {
+            passwordInput.type = "password";
+            eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
+        }
+    }
+</script>
+
 
 <script>
 function togglePassword(fieldId) {
