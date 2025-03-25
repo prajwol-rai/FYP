@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="payment-failed">
+    <h2>Payment Failed ❌</h2>
+    <p>Please try again or contact support.</p>
+    <a href="{% url 'cart_view' %}" class="btn btn-warning">
+        Return to Cart
+    </a>
+</div>
+{% endblock %}

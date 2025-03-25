@@ -1,6 +1,8 @@
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
+import io
 from typing import Self
+import uuid
 from venv import logger
 import zipfile
 from django.forms import ValidationError
@@ -15,7 +17,7 @@ from django.views.decorators.http import require_POST
 from django.core.mail import send_mail
 import json
 
-from .models import Category, CommunityMember, Game, Customer, Developer, Community, Post, Comment, GameSubmission, GameScreenshot
+from .models import Category, Commission, CommunityMember, Game, Customer, Developer, Community, Order, Post, Comment, GameSubmission, GameScreenshot
 from .forms import (
     CustomPasswordChangeForm,
     SignUpForm,
@@ -881,6 +883,7 @@ def delete_submission(request, submission_id):
 def review_submissions(request):
     submissions = GameSubmission.objects.filter(status='pending').prefetch_related('categories')
     return render(request, 'admin/review_submissions.html', {'submissions': submissions})
+    
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def review_submission(request, submission_id):
@@ -1081,37 +1084,43 @@ import os
 from django.utils.text import slugify
 
 @login_required
-@require_POST
+def download_game(request, game_id):
+    try:
+        game = Game.objects.get(
+            id=game_id,
+            price=0,
+            cart_items__cart__customer=request.user.customer
+        )
+        if game.submission and game.submission.game_file:
+            return FileResponse(
+                game.submission.game_file.open(),
+                filename=os.path.basename(game.submission.game_file.name),
+                as_attachment=True
+            )
+    except Game.DoesNotExist:
+        pass
+    return HttpResponse("File not available", status=404)
+
+@login_required
 def download_free_games(request):
-    game_ids = request.POST.getlist('game_ids')
-    
-    # Validate games exist and are free
+    game_ids = request.GET.get('game_ids', '').split(',')
     games = Game.objects.filter(
         id__in=game_ids,
         price=0,
-        cartitem__cart__customer=request.user.customer
-    ).distinct()
+        cart_items__cart__customer=request.user.customer
+    ).prefetch_related('submission')
 
-    if not games.exists():
-        return HttpResponse("No valid free games selected", status=400)
-
-    # Create in-memory ZIP file
-    zip_buffer = BytesIO()
-    
+    # Create in-memory zip file
+    zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for game in games:
-            if game.game_file and os.path.exists(game.game_file.path):
-                # Get safe filename
-                base_name = slugify(game.name) + os.path.splitext(game.game_file.name)[1]
-                zipf.write(game.game_file.path, arcname=base_name)
-    
-    # Prepare response
+            if game.submission and game.submission.game_file:
+                file_path = game.submission.game_file.path
+                if os.path.exists(file_path):
+                    zipf.write(file_path, os.path.basename(file_path))
+
     zip_buffer.seek(0)
-    response = FileResponse(zip_buffer, content_type='application/zip')
-    response['Content-Disposition'] = 'attachment; filename="free_games.zip"'
-    response['Content-Length'] = zip_buffer.getbuffer().nbytes
-    
-    return response
+    return FileResponse(zip_buffer, filename='free_games.zip', as_attachment=True)
 
 @require_POST
 @login_required
@@ -1141,6 +1150,128 @@ def remove_from_cart(request, item_id):
         return JsonResponse({'success': False, 'error': 'Item not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+# ======================
+#payments
+# ======================
+
+import json
+from decimal import Decimal
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+
+def initiate_khalti_payment(request):
+    # Get current user's cart
+    cart = request.user.customer.cart
+    cart_items = cart.items.all()
+    
+    # Calculate total amount in paisa
+    total_amount = sum(item.total_price() for item in cart_items) * 100
+    
+    # Create purchase order ID
+    purchase_order_id = f"PO-{uuid.uuid4().hex[:8]}"
+    
+    # Prepare Khalti payload
+    payload = {
+        "return_url": request.build_absolute_uri(reverse('verify_payment')),
+        "website_url": settings.SITE_URL,
+        "amount": int(total_amount),
+        "purchase_order_id": purchase_order_id,
+        "purchase_order_name": f"Game Purchase - {purchase_order_id}",
+        "customer_info": {
+            "name": f"{request.user.first_name} {request.user.last_name}",
+            "email": request.user.email,
+            "phone": request.user.customer.phone
+        }
+    }
+    
+    # Prepare headers
+    headers = {
+        "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    # Send request to Khalti
+    response = request.post(
+        f"{settings.KHALTI_API_URL}/epayment/initiate/",
+        json=payload,
+        headers=headers
+    )
+    
+    if response.status_code == 200:
+        # Create order record
+        order = Order.objects.create(
+            customer=request.user.customer,
+            purchase_order_id=purchase_order_id,
+            total_amount=Decimal(total_amount/100),
+            payment_status='pending'
+        )
+        
+        # Add cart items to order
+        for cart_item in cart_items:
+            order.product = cart_item.game
+            order.quantity = cart_item.quantity
+            order.save()
+        
+        # Store Khalti pidx
+        response_data = response.json()
+        order.khalti_payment_id = response_data['pidx']
+        order.save()
+        
+        return redirect(response_data['payment_url'])
+    
+    messages.error(request, "Payment initiation failed")
+    return redirect('cart_view')
+
+def verify_khalti_payment(request):
+    pidx = request.GET.get('pidx')
+    
+    # Verify payment with Khalti
+    headers = {
+        "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    verify_response = request.post(
+        f"{settings.KHALTI_API_URL}/epayment/lookup/",
+        json={"pidx": pidx},
+        headers=headers
+    )
+    
+    if verify_response.status_code == 200:
+        verification_data = verify_response.json()
+        order = Order.objects.get(purchase_order_id=verification_data['purchase_order_id'])
+        
+        if verification_data['status'] == 'Completed':
+            # Update order status
+            order.payment_status = 'completed'
+            order.save()
+            
+            # Create commission record
+            commission_rate = Decimal(0.20)  # 20% platform fee
+            platform_fee = order.total_amount * commission_rate
+            developer_payout = order.total_amount - platform_fee
+            
+            Commission.objects.create(
+                order=order,
+                platform_fee=platform_fee,
+                developer_payout=developer_payout,
+                status='pending'
+            )
+            
+            # Clear the cart
+            cart = request.user.customer.cart
+            cart.items.all().delete()
+            
+            return redirect('payment_success')
+    
+    return redirect('payment_failed')
+
+def payment_success(request):
+    return render(request, 'payment/success.html')
+
+def payment_failed(request):
+    return render(request, 'payment/failed.html')
 # ======================
 # Miscellaneous Views
 # ======================

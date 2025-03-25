@@ -38,9 +38,14 @@ class Developer(models.Model):
     user = models.OneToOneField(Customer, on_delete=models.CASCADE)
     company_name = models.CharField(max_length=100, blank=True, null=True)
     approved = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f'{self.user} - {self.company_name}'
+    # Add these new fields
+    khalti_merchant_id = models.CharField(max_length=100, blank=True)
+    bank_account_number = models.CharField(max_length=50, blank=True)
+    payout_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=70.00
+    )
 
 # ======================
 # Product Models
@@ -78,13 +83,45 @@ class Order(models.Model):
     product = models.ForeignKey(Game, on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
+    # Add these new fields
+    purchase_order_id = models.CharField(max_length=50, unique=True)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('completed', 'Completed'),
+            ('failed', 'Failed')
+        ],
+        default='pending'
+    )
+    khalti_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    # Keep existing fields
     address = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=20, blank=True)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True)  # Change from DateField
     status = models.BooleanField(default=False)
 
-    def __str__(self):
-        return f'Order #{self.id} - {self.product.name}'
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+class Commission(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    platform_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    developer_payout = models.DecimalField(max_digits=10, decimal_places=2)
+    payout_date = models.DateTimeField(null=True)
+    status = models.CharField(  # Fixed this line
+        max_length=20,  # Changed from max_digits to max_length
+        choices=[
+            ('pending', 'Pending'),
+            ('paid', 'Paid'),
+            ('failed', 'Failed')
+        ],
+        default='pending'
+    )
 
 # ======================
 # Community Models
@@ -257,7 +294,7 @@ class Cart(models.Model):
     
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, related_name='cart_items', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
 
     def total_price(self):

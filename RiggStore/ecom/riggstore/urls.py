@@ -54,8 +54,17 @@ urlpatterns = [
     path('cart/', views.cart_view, name='cart_view'),
     path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('cart/delete-selected/', views.delete_selected_items, name='delete_selected_items'),
-    path('download-free-games/', views.download_free_games, name='download_free_games'),
+
+    path('download/<int:game_id>/', views.download_game, name='download_game'),
+    path('download-free/', views.download_free_games, name='download_free_games'),
+
 
     # Miscellaneous
     path('aboutus/', views.aboutus, name='aboutus'),
+
+    #payment
+    path('initiate-payment/', views.initiate_khalti_payment, name='initiate_payment'),
+    path('verify-payment/', views.verify_khalti_payment, name='verify_payment'),
+    path('payment/success/', views.payment_success, name='payment_success'),
+    path('payment/failed/', views.payment_failed, name='payment_failed'),
 ]
