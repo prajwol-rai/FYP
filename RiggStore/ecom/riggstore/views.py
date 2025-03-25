@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 from django.core.mail import send_mail
 import json
 
-from .models import Category, Commission, CommunityMember, Game, Customer, Developer, Community, Order, Post, Comment, GameSubmission, GameScreenshot
+from .models import Category, Commission, CommunityMember, DownloadHistory, Game, Customer, Developer, Community, Order, Post, Comment, GameSubmission, GameScreenshot
 from .forms import (
     CustomPasswordChangeForm,
     SignUpForm,
@@ -540,17 +540,13 @@ def delete_comment(request, comment_id):
 # Render the user's account page with their details and download history.
 @login_required
 def account(request):
-    return render(request, 'account.html', {
-        'user': request.user,
-        'wallet_balance': 100.50,
-        'download_history': [
-            {'file_name': 'God of War', 'download_date': '2025-02-10'},
-            {'file_name': 'CS2', 'download_date': '2025-02-08'},
-            {'file_name': 'Dota 2', 'download_date': '2025-02-05'},
-            {'file_name': 'Tekken 8', 'download_date': '2025-02-05'},
-            {'file_name': 'Valorent', 'download_date': '2025-02-05'},
-        ]
-    })
+    customer = request.user.customer
+    download_history = DownloadHistory.objects.filter(user=customer).select_related('game').order_by('-downloaded_at')[:20]
+    
+    context = {
+        'download_history': download_history,
+    }
+    return render(request, 'account.html', context)
 
 # Allow the user to edit their profile information.
 @login_required
@@ -1091,7 +1087,15 @@ def download_game(request, game_id):
             price=0,
             cart_items__cart__customer=request.user.customer
         )
+        
         if game.submission and game.submission.game_file:
+            # Record download history
+            DownloadHistory.objects.create(
+                user=request.user.customer,
+                game=game,
+                download_type='single'
+            )
+            
             return FileResponse(
                 game.submission.game_file.open(),
                 filename=os.path.basename(game.submission.game_file.name),
@@ -1107,7 +1111,7 @@ def download_free_games(request):
     games = Game.objects.filter(
         id__in=game_ids,
         price=0,
-        cart_items__cart__customer=request.user.customer
+        cart_items__cart__customer=request.user.customer 
     ).prefetch_related('submission')
 
     # Create in-memory zip file
@@ -1118,9 +1122,16 @@ def download_free_games(request):
                 file_path = game.submission.game_file.path
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
+                    # Record batch download history
+                    DownloadHistory.objects.create(
+                        user=request.user.customer,
+                        game=game,
+                        download_type='batch'
+                    )
 
     zip_buffer.seek(0)
     return FileResponse(zip_buffer, filename='free_games.zip', as_attachment=True)
+
 
 @require_POST
 @login_required

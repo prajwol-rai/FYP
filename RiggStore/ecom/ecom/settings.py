@@ -136,3 +136,10 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'riggstore.team@gmail.com'  # Your Gmail address
 EMAIL_HOST_PASSWORD = 'myst ztbn hojt kzgh'  # App-specific password
+
+KHALTI_CONFIG = {
+    'API_URL': 'https://dev.khalti.com/api/v2/' if DEBUG else 'https://khalti.com/api/v2/',
+    'SECRET_KEY': 'f9f87a1fe24e447eaaa36fcbdebcd5f6',  # From Khalti dashboard
+    'COMMISSION_RATE': 0.20,  # 20% platform fee
+    'RETURN_URL': 'http://localhost:8000/payment/verify/'
+}

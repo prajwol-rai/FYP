@@ -304,3 +304,16 @@ class CartItem(models.Model):
         return f"{self.game.name} in cart of {self.cart.customer}"
 
 
+# models.py
+class DownloadHistory(models.Model):
+    user = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='downloads')
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+    download_type = models.CharField(max_length=10, choices=[('single', 'Single'), ('batch', 'Batch')])
+
+    class Meta:
+        ordering = ['-downloaded_at']
+        verbose_name_plural = 'Download Histories'
+
+    def __str__(self):
+        return f"{self.user} downloaded {self.game} at {self.downloaded_at}"

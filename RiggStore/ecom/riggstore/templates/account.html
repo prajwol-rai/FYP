@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block content %}
+
 <div class="account-container">
     <h2 class="account-heading">Account Details</h2>
     
@@ -93,10 +94,49 @@
             </div>
         </div>
     </div>
-    
     {% endif %}
 
-</div>
+    <!-- Download History Section -->
+    <div class="download-history-section mt-5">
+        <h2 class="section-heading mb-4"><i class="fas fa-history me-2"></i>Download History</h2>
+        
+        {% if download_history %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Game</th>
+                        <th>Download Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for download in download_history %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="{{ download.game.image.url }}" class="game-thumbnail me-3" alt="{{ download.game.name }}"onerror="this.src='{% static 'images/default_game.png' %}'">
+                                <div>
+                                    <div class="fw-bold">{{ download.game.name }}</div>
+                                    <div class="text-muted small">
+                                        {{ download.game.developer.user.f_name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ download.downloaded_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            No download history available
+        </div>
+        {% endif %}
+    </div>
+</div> 
 
 <style>
     :root {
@@ -476,6 +516,141 @@
             flex-direction: column;
         }
     }
+    /* Download History Section */
+.download-history-section {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+}
+
+.section-heading {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--background-color);
+    transform: translateX(4px);
+}
+
+.game-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.table-light th {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.table-light td {
+    vertical-align: middle;
+    border-color: var(--border-color);
+}
+
+.badge {
+    padding: 0.5em 0.75em;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-info {
+    background-color: var(--secondary-color) !important;
+}
+
+.btn-outline-secondary {
+    border-color: var(--border-color);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.alert-info {
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .game-thumbnail {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .table-responsive {
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table, .table tbody, .table tr, .table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .table tr {
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+    
+    .table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+    
+    .table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        width: 45%;
+        padding-right: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .table td:first-child {
+        text-align: center;
+        padding-left: 1rem;
+    }
+    
+    .table td:first-child::before {
+        display: none;
+    }
+    
+    .btn-outline-secondary {
+        width: 100%;
+    }
+}
 </style>
 
 <script>
