@@ -219,6 +219,7 @@ class GameSubmission(models.Model):
     admin_notes = models.TextField(blank=True)
 
     file_size = models.PositiveIntegerField(null=True, blank=True)  # Automatically stored
+    download_count = models.PositiveIntegerField(default=0) 
 
     def delete(self, *args, **kwargs):
         """Handle file deletions while letting Django manage DB relations"""

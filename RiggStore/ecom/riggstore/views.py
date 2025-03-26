@@ -1096,6 +1096,10 @@ def download_game(request, game_id):
                 download_type='single'
             )
             
+            # Increment download count
+            game.submission.download_count += 1
+            game.submission.save(update_fields=['download_count'])
+
             return FileResponse(
                 game.submission.game_file.open(),
                 filename=os.path.basename(game.submission.game_file.name),
@@ -1104,6 +1108,7 @@ def download_game(request, game_id):
     except Game.DoesNotExist:
         pass
     return HttpResponse("File not available", status=404)
+
 
 @login_required
 def download_free_games(request):
@@ -1122,6 +1127,7 @@ def download_free_games(request):
                 file_path = game.submission.game_file.path
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
+                    
                     # Record batch download history
                     DownloadHistory.objects.create(
                         user=request.user.customer,
@@ -1129,8 +1135,14 @@ def download_free_games(request):
                         download_type='batch'
                     )
 
+                    # Increment download count
+                    game.submission.download_count += 1
+                    game.submission.save(update_fields=['download_count'])
+
     zip_buffer.seek(0)
-    return FileResponse(zip_buffer, filename='free_games.zip', as_attachment=True)
+    response = HttpResponse(zip_buffer.read(), content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="free_games.zip"'
+    return response
 
 
 @require_POST
