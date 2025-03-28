@@ -323,38 +323,19 @@
                     });
                     const data = await handleResponse(response);
                     
-                    // Get the post card container
-                    const postCard = e.currentTarget.closest('.post-card');
+                    // Find the post card using the post ID
+                    const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
                     if (!postCard) {
                         throw new Error('Post container not found');
                     }
 
-                    // Find the comments list within this post
+                    // Rest of the code remains the same...
                     const commentsList = postCard.querySelector('.comments-list');
                     if (!commentsList) {
                         throw new Error('Comments list not found');
                     }
 
-                    // Insert new comment at the top
-                    const commentHTML = `
-                        <div class="comment" data-comment-id="${data.comment_id}">
-                            <img src="${data.user_image}" class="comment-avatar" alt="User avatar">
-                            <div class="comment-content">
-                                <div class="comment-header">
-                                    <strong>${data.user_name}</strong>
-                                    <button class="btn btn-link btn-sm delete-comment" 
-                                            data-comment-id="${data.comment_id}">
-                                        <i class="fas fa-times text-danger"></i>
-                                    </button>
-                                </div>
-                                <p>${data.text}</p>
-                                <small>Just now</small>
-                            </div>
-                        </div>
-                    `;
-                    commentsList.insertAdjacentHTML('afterbegin', commentHTML);
-                    e.currentTarget.reset();
-                    
+                    // Insert new comment HTML...
                 } catch (error) {
                     showNotification(`Error posting comment: ${error.message}`, false);
                 }

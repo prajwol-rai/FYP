@@ -222,7 +222,6 @@ class GameSubmission(models.Model):
     download_count = models.PositiveIntegerField(default=0) 
 
     def delete(self, *args, **kwargs):
-        """Handle file deletions while letting Django manage DB relations"""
         # Delete associated files
         self.game_file.delete(save=False)
         self.thumbnail.delete(save=False)
@@ -282,12 +281,10 @@ class Cart(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def total_items(self):
-        """Optimized count using database aggregation"""
         from django.db.models import Sum
         return self.items.aggregate(total=Sum('quantity'))['total'] or 0
 
     def total_price(self):
-        """Calculate total cart price"""
         return sum(item.total_price() for item in self.items.all())
 
     def __str__(self):
@@ -305,7 +302,6 @@ class CartItem(models.Model):
         return f"{self.game.name} in cart of {self.cart.customer}"
 
 
-# models.py
 class DownloadHistory(models.Model):
     user = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='downloads')
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
