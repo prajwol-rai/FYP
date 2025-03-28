@@ -1,0 +1,24 @@
+Welcome to RiggStore{% if is_developer %} Developer Program{% endif %}!
+
+Hi {{ first_name }},
+
+{% if is_developer %}
+Your developer account is now active! Next steps:
+1. Submit your first game through our developer portal
+2. Access analytics and sales reports
+3. Join our developer community forum
+4. Set up payment information
+{% else %}
+Your gaming journey starts now! Explore:
+1. Thousands of games across all genres
+2. Exclusive member discounts
+3. Curated game recommendations
+4. Community forums and events
+{% endif %}
+
+Start exploring: https://yourdomain.com/dashboard
+
+Need help? Contact us at support@yourdomain.com
+
+Best regards,
+The RiggStore Team

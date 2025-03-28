@@ -17,22 +17,6 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'aboutus' %}">About Us</a>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        Games
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="{% url 'home' %}">All Games</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'home' %}">Popular Games</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'home' %}">New Releases</a>
-                        </li>
-                    </ul>
-                </li>
             </ul>
             <ul class="navbar-nav">
                 {% if user.is_authenticated %}

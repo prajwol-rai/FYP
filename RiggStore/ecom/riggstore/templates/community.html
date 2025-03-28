@@ -3,6 +3,10 @@
 
 {% block content %}
     <style>
+        .community-container .navbar {
+            all: unset;
+        }
+
         :root {
             --primary: #6366f1;
             --primary-hover: #4f46e5;
@@ -16,18 +20,11 @@
             --blur: blur(12px);
         }
 
-        /* Base Styles */
-        /* body {
-            background: var(--background);
-            color: var(--text);
-            font-family: 'Inter', system-ui, sans-serif;
-            line-height: 1.6;
-        } */
-
         .community-container {
             max-width: 1600px;
             margin: 2rem auto;
             padding: 0 1.5rem;
+            box-sizing: border-box;
         }
 
         /* Header Section */

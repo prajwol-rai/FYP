@@ -71,28 +71,38 @@ class SignUpForm(UserCreationForm):
             raise forms.ValidationError("Username already exists!")
         return username
 
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-
-        # Validate if email exists in Customer table
-        if Customer.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email already registered!")
-
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        
+        # Sanitize phone number
+        cleaned_phone = ''.join(filter(str.isdigit, phone))
+        
         # Validate length
+        if len(cleaned_phone) != 10:
+            raise forms.ValidationError("Phone number must be 10 digits")
+        
+        # Check uniqueness in Customer model
+        if Customer.objects.filter(phone=cleaned_phone).exists():
+            raise forms.ValidationError("This phone number is already registered")
+        
+        return cleaned_phone
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email').lower()
+        
+        # Check both User and Customer tables
+        if User.objects.filter(email=email).exists() or \
+           Customer.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already registered")
+        
+        # Keep your existing email validations
         if len(email) > 100:
             raise forms.ValidationError("Email must be under 100 characters")
-
-        # Validate domain
+            
         if not email.endswith('@gmail.com'):
             raise forms.ValidationError("Only Gmail addresses allowed")
         
         return email
-
-    def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-        if not phone.isdigit() or len(phone) != 10:
-            raise forms.ValidationError("Phone must be 10 digits")
-        return phone
     
 # Form for editing user details, extending the default UserChangeForm.
 class UserEditForm(UserChangeForm):

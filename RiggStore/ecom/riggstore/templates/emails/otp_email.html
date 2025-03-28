@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 20px auto; padding: 30px; border-radius: 10px; background: #f8f9fa; }
+        .header { text-align: center; padding-bottom: 20px; }
+        .logo { max-width: 150px; }
+        .otp-box { 
+            background: #ffffff; 
+            padding: 25px; 
+            border-radius: 8px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 25px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .footer { 
+            margin-top: 30px;
+            text-align: center;
+            color: #718096;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="color: #2d3748; margin-top: 20px;">Verify Your Email</h2>
+        </div>
+
+        <p style="color: #4a5568;">Hello there! 👋</p>
+        <p style="color: #4a5568;">Please use the following OTP to complete your registration:</p>
+
+        <div class="otp-box">
+            {{ otp }}
+        </div>
+
+        <p style="color: #4a5568;">This code will expire in 5 minutes. If you didn't request this, please ignore this email.</p>
+
+        <div class="footer">
+            <p>© 2024 RiggStore. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

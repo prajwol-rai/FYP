@@ -310,13 +310,14 @@
             </div>
 
             <!-- Phone -->
+            <!-- Phone Input Section -->
             <div class="form-group">
                 <label for="id_phone">Phone</label>
                 <input type="tel" name="phone" id="id_phone" 
-                       class="form-input {% if form.phone.errors %}input-error{% endif %}" 
-                       placeholder="Phone number" 
-                       value="{{ form.phone.value|default:'' }}"
-                       required>
+                    class="form-input {% if form.phone.errors %}input-error{% endif %}" 
+                    placeholder="Phone number" 
+                    value="{{ form.phone.value|default:'' }}"
+                    required>
                 {% if form.phone.errors %}
                     <div class="error-message">
                         {{ form.phone.errors.0 }}

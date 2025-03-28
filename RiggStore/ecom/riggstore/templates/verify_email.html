@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .verification-container {
+        max-width: 480px;
+        margin: 2rem auto;
+        padding: 2.5rem;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .verification-container h2 {
+        color: #1a1a1a;
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .verification-container p {
+        color: #4a5568;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .button {
+        width: 100%;
+        padding: 14px 20px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+
+    .button:hover {
+        background: #5a67d8;
+        transform: translateY(-1px);
+    }
+
+    .alert-danger {
+        background: #fff5f5;
+        color: #c53030;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #fed7d7;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: shake 0.4s ease-in-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-8px); }
+        75% { transform: translateX(8px); }
+    }
+
+    .resend-link p {
+        color: #718096;
+        margin: 0;
+    }
+
+    .resend-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .resend-link a:hover {
+        color: #5a67d8;
+        text-decoration: underline;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
+        .verification-container {
+            margin: 1rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        
+        .verification-container h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+<div class="verification-container">
+    <h2>Verify Your Email 📧</h2>
+    <p>We've sent a 6-digit verification code to<br><strong>{{ email }}</strong></p>
+    
+    {% if error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ error }}
+        </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="number" 
+                   name="otp" 
+                   placeholder="Enter 6-digit code" 
+                   class="form-input"
+                   inputmode="numeric"
+                   pattern="\d{6}"
+                   minlength="6"
+                   maxlength="6"
+                   required>
+        </div>
+        <button type="submit" class="button">Verify Account</button>
+    </form>
+    
+    <div class="resend-link">
+        <p>Didn't receive the code?<br>
+            <a href="{% url 'resend_otp' email=email %}">
+                <i class="fas fa-redo-alt"></i> Resend OTP
+            </a>
+        </p>
+    </div>
+</div>
+
+{% endblock %}

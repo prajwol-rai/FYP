@@ -2,142 +2,6 @@
 {% load static %}
 
 {% block content %}
-
-<div class="account-container">
-    <h2 class="account-heading">Account Details</h2>
-    
-    <div class="account-profile">
-        <!-- Profile Picture Section -->
-        <div class="profile-card">
-            <form method="post" action="{% url 'upload_profile_image' %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="profile-image-container">
-                    {% if user.customer.image %}
-                        <img src="{{ user.customer.image.url }}" class="profile-image" id="profile-image-preview" alt="Profile Picture">
-                    {% else %}
-                        <img src="{% static 'images/default_profile_pic.jpg' %}" class="profile-image" id="profile-image-preview" alt="Profile Picture">
-                    {% endif %}
-                </div>
-                <div class="profile-image-controls">
-                    <label class="btn-change-image">
-                        <i class="fas fa-camera"></i> Change Picture
-                        <input type="file" name="image" id="id_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
-                    </label>
-                    <button type="submit" class="btn-upload" style="display: none;">Upload</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- User Information Section -->
-        <div class="account-details">
-            <div class="detail-card">
-                <div class="detail-header">
-                    <h3>Personal Information</h3>
-                    <a href="{% url 'edit_profile' %}" class="btn-edit">
-                        <i class="fas fa-edit"></i> Edit Profile
-                    </a>
-                </div>
-                
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Username</span>
-                        <span class="detail-value">{{ user.username }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">First Name</span>
-                        <span class="detail-value">{{ user.first_name }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Last Name</span>
-                        <span class="detail-value">{{ user.last_name }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Email</span>
-                        <span class="detail-value">{{ user.email }}</span>
-                    </div>
-                    <!-- <div class="detail-item wallet-item">
-                        <div class="wallet-balance">
-                            <span class="detail-label">Wallet Balance</span>
-                            <span class="detail-value">${{ wallet_balance }}</span>
-                        </div>
-                        <a href="#" class="btn-wallet">
-                            <i class="fas fa-coins"></i> Add Funds
-                        </a>
-                    </div> -->
-                </div>
-            </div>
-
-            <!-- Account Actions -->
-            <div class="account-actions">
-                <a href="{% url 'change_password' %}" class="btn-password">
-                    <i class="fas fa-lock"></i> Change Password
-                </a>
-                <a href="{% url 'logout' %}" class="btn-logout">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </div>
-
-    {% if user.customer.developer %}
-    <div class="developer-cta mb-5">
-        <div class="cta-card p-4 rounded-3 shadow-sm">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <div>
-                    <h4 class="mb-1"><i class="fas fa-gamepad me-2"></i>Developer Portal</h4>
-                    <p class="text-muted mb-0">Manage your game submissions and track performance</p>
-                </div>
-                <a href="{% url 'developer_dashboard' %}" class="btn btn-success btn-lg">
-                    <i class="fas fa-rocket me-2"></i>
-                    Manage Games
-                </a>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Download History Section -->
-    <div class="download-history-section mt-5">
-        <h2 class="section-heading mb-4"><i class="fas fa-history me-2"></i>Download History</h2>
-        
-        {% if download_history %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Game</th>
-                        <th>Download Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for download in download_history %}
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <img src="{{ download.game.image.url }}" class="game-thumbnail me-3" alt="{{ download.game.name }}"onerror="this.src='{% static 'images/default_game.png' %}'">
-                                <div>
-                                    <div class="fw-bold">{{ download.game.name }}</div>
-                                    <div class="text-muted small">
-                                        {{ download.game.developer.user.f_name }}
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>{{ download.downloaded_at|date:"M d, Y H:i" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="alert alert-info mb-0">
-            <i class="fas fa-info-circle me-2"></i>
-            No download history available
-        </div>
-        {% endif %}
-    </div>
-</div> 
-
 <style>
     :root {
         --primary-color: #2563eb;
@@ -269,6 +133,17 @@
     .btn-upload:hover {
         background: #059669;
     }
+    .btn-delete {
+        border-radius: 8px;
+        background: var(--danger-color);
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-delete:hover {
+        background-color: #dc2626;
+    }
 
     /* User Information Section */
     .detail-card {
@@ -389,6 +264,7 @@
     .btn-logout:hover {
         background: #dc2626;
     }
+
     .game-upload-section {
     background: white;
     border-radius: 1rem;
@@ -652,6 +528,173 @@
     }
 }
 </style>
+
+<div class="account-container">
+    <h2 class="account-heading">Account Details</h2>
+    
+    <div class="account-profile">
+        <!-- Profile Picture Section -->
+        <div class="profile-card">
+            <form method="post" action="{% url 'upload_profile_image' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="profile-image-container">
+                    {% if user.customer.image %}
+                        <img src="{{ user.customer.image.url }}" class="profile-image" id="profile-image-preview" alt="Profile Picture">
+                    {% else %}
+                        <img src="{% static 'images/default_profile_pic.jpg' %}" class="profile-image" id="profile-image-preview" alt="Profile Picture">
+                    {% endif %}
+                </div>
+                <div class="profile-image-controls">
+                    <label class="btn-change-image">
+                        <i class="fas fa-camera"></i> Change Picture
+                        <input type="file" name="image" id="id_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
+                    </label>
+                    <button type="submit" class="btn-upload" style="display: none;">Upload</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- User Information Section -->
+        <div class="account-details">
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h3>Personal Information</h3>
+                    <a href="{% url 'edit_profile' %}" class="btn-edit">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </a>
+                </div>
+                
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Username</span>
+                        <span class="detail-value">{{ user.username }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">First Name</span>
+                        <span class="detail-value">{{ user.first_name }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Last Name</span>
+                        <span class="detail-value">{{ user.last_name }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value">{{ user.email }}</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Account Actions -->
+            <div class="account-actions">
+                <a href="{% url 'change_password' %}" class="btn-password">
+                    <i class="fas fa-lock"></i> Change Password
+                </a>
+                <a href="{% url 'logout' %}" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+                <button type="button" class="btn-action btn-delete" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                    <i class="fas fa-trash-alt"></i> Delete Account
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if user.customer.developer %}
+    <div class="developer-cta mb-5">
+        <div class="cta-card p-4 rounded-3 shadow-sm">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h4 class="mb-1"><i class="fas fa-gamepad me-2"></i>Developer Portal</h4>
+                    <p class="text-muted mb-0">Manage your game submissions and track performance</p>
+                </div>
+                <a href="{% url 'developer_dashboard' %}" class="btn btn-success btn-lg">
+                    <i class="fas fa-rocket me-2"></i>
+                    Manage Games
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Download History Section -->
+    <div class="download-history-section mt-5">
+        <h2 class="section-heading mb-4"><i class="fas fa-history me-2"></i>Download History</h2>
+        
+        {% if download_history %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Game</th>
+                        <th>Download Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for download in download_history %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="{{ download.game.image.url }}" class="game-thumbnail me-3" alt="{{ download.game.name }}"onerror="this.src='{% static 'images/default_game.png' %}'">
+                                <div>
+                                    <div class="fw-bold">{{ download.game.name }}</div>
+                                    <div class="text-muted small">
+                                        {{ download.game.developer.user.f_name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ download.downloaded_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            No download history available
+        </div>
+        {% endif %}
+    </div>
+</div> 
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteAccountModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Account Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'delete_account' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <strong>Warning!</strong> This action is permanent and cannot be undone. All your data including:
+                        <ul class="mt-2">
+                            <li>Purchase history</li>
+                            <li>Download records</li>
+                            <li>Profile information</li>
+                            <li>Game submissions (if developer)</li>
+                        </ul>
+                        will be permanently deleted.
+                    </div>
+                    <div class="mb-3">
+                        <label for="passwordConfirm" class="form-label">Enter your password to confirm:</label>
+                        <input type="password" class="form-control" name="password" id="passwordConfirm" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Permanently Delete Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
     function previewImage(event) {

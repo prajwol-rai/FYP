@@ -7,15 +7,16 @@
         max-width: 1600px;
         margin: 2rem auto;
         padding: 0 1.5rem;
+        box-sizing: border-box;
     }
 
     .community-header {
         display: flex;
         align-items: center;
         gap: 1.5rem;
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
         padding: 1rem 0;
-        position: relative;
+        flex-wrap: wrap;
     }
 
     .back-button {
@@ -40,75 +41,101 @@
         border-radius: 8px;
         font-weight: 500;
     }
+    .members-grid {
+        gap: 0;
+        background: var(--border-color);
+        padding: 0 !important;
+    }
 
-    .members-list {
-        display: grid;
-        gap: 2rem;
+    .member-card {
+        border-bottom: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        margin: -1px;
+        background: var(--card-bg);
+    }
+
+    .member-card.first-row {
+        border-top: 1px solid var(--border-color);
+    }
+
+    .member-card.first-column {
+        border-left: 1px solid var(--border-color);
     }
 
     .role-section {
-        background: var(--glass-bg);
-        backdrop-filter: var(--blur);
-        border-radius: var(--border-radius);
-        padding: 1.5rem;
-        box-shadow: var(--shadow);
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(177, 151, 151, 0.05);
     }
 
     .role-title {
-        font-size: 1.5rem;
-        margin-bottom: 1.5rem;
+        background: rgba(99, 102, 241, 0.05);
+        padding: 1rem 1.5rem;
+        border-radius: 8px 8px 0 0;
+        margin: 0;
+        font-size: 1.25rem;
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        color: var(--text);
     }
 
     .members-grid {
+        background: rgba(99, 102, 241, 0.05);
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        align-items: start;
+        padding: 1.5rem;
     }
 
     .member-card {
         background: var(--card-bg);
-        padding: 1.25rem;
+        padding: 1.5rem;
         border-radius: 12px;
-        display: flex;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
-        gap: 1rem;
-        transition: all 0.3s ease;
+        gap: 1.2rem;
         box-shadow: var(--shadow);
+        transition: transform 0.2s ease;
+        border: 1px solid var(--border-color);
     }
 
     .member-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
     }
 
     .member-avatar {
-        width: 50px;
-        height: 50px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid var(--primary);
+        grid-row: span 2;
     }
 
     .member-details {
-        flex: 1;
+        grid-column: 2 / 4;
+        min-width: 0;
     }
 
     .member-name {
         margin: 0;
         font-weight: 600;
         color: var(--text);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .member-role {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #64748b;
+    .member-actions {
+        display: flex;
+        gap: 0.75rem;
+        grid-column: 3;
+        grid-row: 1;
+        margin-left: auto;
     }
 
     .badge {
@@ -124,28 +151,7 @@
         background: #10b981;
     }
 
-    .join-date {
-        font-size: 0.875rem;
-        color: #64748b;
-    }
-
-    @media (max-width: 768px) {
-        .community-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .members-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-    .member-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-left: auto;
-        padding-left: 1rem;
-    }
-
+    /* Action Buttons */
     .action-form {
         display: inline-block;
     }
@@ -168,17 +174,9 @@
         color: white;
     }
 
-    .btn-promote:hover {
-        background: #2563eb;
-    }
-
     .btn-demote {
         background: #f59e0b;
         color: white;
-    }
-
-    .btn-demote:hover {
-        background: #d97706;
     }
 
     .btn-kick {
@@ -186,13 +184,44 @@
         color: white;
     }
 
-    .btn-kick:hover {
-        background: #dc2626;
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .members-grid {
+            grid-template-columns: 1fr;
+            padding: 1rem;
+        }
+
+        .member-card {
+            grid-template-columns: auto 1fr;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .member-actions {
+            grid-column: 2;
+            grid-row: 2;
+            justify-content: flex-end;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .community-members-container {
+            padding: 0 1rem;
+        }
+
+        .member-avatar {
+            width: 48px;
+            height: 48px;
+        }
+
+        .btn {
+            width: 32px;
+            height: 32px;
+        }
     }
 </style>
-<!-- Community Members Container -->
+
 <div class="community-members-container">
-    <!-- Community Header -->
     <div class="community-header">
         <a href="{% url 'community_detail' community.id %}" class="back-button">
             <i class="fas fa-arrow-left"></i>
@@ -211,12 +240,12 @@
         <div class="members-grid">
             {% for member in admins %}
             <div class="member-card">
-                <img src="{{ member.image.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                <img src="{{ member.image.url }}" class="member-avatar" alt="{{ member.user.username }}">
                 <div class="member-details">
                     <h4 class="member-name">
                         {{ member.user.username }}
                         {% if member == community.created_by %}
-                            <span class="badge creator-badge">Creator</span>
+                        <span class="badge creator-badge">Creator</span>
                         {% endif %}
                     </h4>
                     <p class="member-email">{{ member.user.email }}</p>
@@ -224,8 +253,7 @@
                 </div>
                 {% if is_admin and member != community.created_by %}
                 <div class="member-actions">
-                    <!-- Kick Admin (only if not the creator) -->
-                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to kick this admin?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
+                    <form class="action-form needs-confirmation" data-confirm-message="Are you sure you want to kick this admin?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-kick" title="Kick from community">
                             <i class="fas fa-user-times"></i>
@@ -249,7 +277,7 @@
         <div class="members-grid">
             {% for member in moderators %}
             <div class="member-card">
-                <img src="{{ member.image.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                <img src="{{ member.image.url }}" class="member-avatar" alt="{{ member.user.username }}">
                 <div class="member-details">
                     <h4 class="member-name">{{ member.user.username }}</h4>
                     <p class="member-email">{{ member.user.email }}</p>
@@ -257,15 +285,15 @@
                 </div>
                 {% if is_admin %}
                 <div class="member-actions">
-                    <!-- Demote moderator to regular member -->
-                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to demote this moderator to a regular member?" action="{% url 'demote_to_member' community.id member.user.id %}" method="post">
+                    <form class="action-form" data-confirm-message="Are you sure you want to demote this moderator?" 
+                          action="{% url 'demote_to_member' community.id member.user.id %}" method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-demote" title="Demote to member">
                             <i class="fas fa-arrow-down"></i>
                         </button>
                     </form>
-                    <!-- Kick moderator -->
-                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to kick this moderator?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
+                    <form class="action-form" data-confirm-message="Are you sure you want to kick this moderator?" 
+                          action="{% url 'kick_member' community.id member.user.id %}" method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-kick" title="Kick from community">
                             <i class="fas fa-user-times"></i>
@@ -289,7 +317,7 @@
         <div class="members-grid">
             {% for member in regular_members %}
             <div class="member-card">
-                <img src="{{ member.image.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                <img src="{{ member.image.url }}" class="member-avatar" alt="{{ member.user.username }}">
                 <div class="member-details">
                     <h4 class="member-name">{{ member.user.username }}</h4>
                     <p class="member-email">{{ member.user.email }}</p>
@@ -297,15 +325,15 @@
                 </div>
                 {% if is_admin %}
                 <div class="member-actions">
-                    <!-- Promote member to moderator -->
-                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to promote this member to moderator?" action="{% url 'promote_to_moderator' community.id member.user.id %}" method="post">
+                    <form class="action-form" data-confirm-message="Are you sure you want to promote this member?" 
+                          action="{% url 'promote_to_moderator' community.id member.user.id %}" method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-promote" title="Promote to moderator">
                             <i class="fas fa-arrow-up"></i>
                         </button>
                     </form>
-                    <!-- Kick member -->
-                    <form class="needs-confirmation action-form" data-confirm-message="Are you sure you want to kick this member?" action="{% url 'kick_member' community.id member.user.id %}" method="post">
+                    <form class="action-form" data-confirm-message="Are you sure you want to kick this member?" 
+                          action="{% url 'kick_member' community.id member.user.id %}" method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-kick" title="Kick from community">
                             <i class="fas fa-user-times"></i>
@@ -318,30 +346,34 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<!-- Include SweetAlert library if not already included -->
-<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-// Attach event listeners to forms that require confirmation
-document.querySelectorAll('.needs-confirmation').forEach(form => {
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const message = this.getAttribute('data-confirm-message') || "Are you sure?";
-        swal({
-            title: "Confirm Action",
-            text: message,
-            icon: "warning",
-            buttons: true,
-            dangerMode: true,
-        }).then((willSubmit) => {
-            if (willSubmit) {
-                this.submit();
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle confirmation dialogs
+    document.querySelectorAll('form[data-confirm-message]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = this.dataset.confirmMessage;
+            const form = this;
+            
+            Swal.fire({
+                title: 'Confirm Action',
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, proceed!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
         });
     });
+
 });
 </script>
+
 {% endblock %}
 

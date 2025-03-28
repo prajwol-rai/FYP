@@ -1,5 +1,7 @@
 from decimal import Decimal, InvalidOperation
 import io
+import time
+import traceback
 import uuid
 import zipfile
 import json
@@ -18,13 +20,13 @@ from django.db.models import Q
 from django.core.cache import cache
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-
-
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from ecom import settings
 
 from .models import (
-    Category, Commission, CommunityMember, DownloadHistory, Game, Customer,
-    Developer, Community, Order, Post, Comment, GameSubmission, GameScreenshot,
+    Category, Commission, CommunityMember, DownloadHistory, EmailVerification, Game, Customer,
+    Developer, Community, Order, OrderItem, Post, Comment, GameSubmission, GameScreenshot,
     Cart, CartItem
 )
 from .forms import (
@@ -36,7 +38,6 @@ from .forms import (
 # Authentication Views
 # ======================
 
-
 def home(request):
     # Fetch all approved games from the database
     games = Game.objects.filter(approved=True)
@@ -44,109 +45,204 @@ def home(request):
     return render(request, 'home.html', {'games': games})
 
 def signup_user(request):
-    # Check if the request method is POST (form submission)
     if request.method == "POST":
-        # Instantiate the sign-up form with the submitted data
         form = SignUpForm(request.POST)
-        # Validate the form data
         if form.is_valid():
+            email = form.cleaned_data['email']
+            
+            # Store form data temporarily
+            form_data = {
+                'username': form.cleaned_data['username'],
+                'first_name': form.cleaned_data['first_name'],
+                'last_name': form.cleaned_data['last_name'],
+                'email': email,
+                'phone': form.cleaned_data['phone'],
+                'account_type': form.cleaned_data['account_type'],
+                'password': form.cleaned_data['password1']
+            }
+            if Customer.objects.filter(phone=form.cleaned_data['phone']).exists():
+                form.add_error('phone', 'This phone number is already registered')
+                return render(request, 'signup.html', {'form': form})
+            # Create verification entry
+            verification = EmailVerification.create_verification(email, form_data)
+            
+            # Send OTP email with explicit template paths
             try:
-                # Create a new User instance
-                user = User.objects.create_user(
-                    username=form.cleaned_data['username'],
-                    password=form.cleaned_data['password1'],
-                    first_name=form.cleaned_data['first_name'],
-                    last_name=form.cleaned_data['last_name'],
-                    email=form.cleaned_data['email']
-                )
-
-                # Create a Customer instance associated with the user
-                customer, created = Customer.objects.get_or_create(
-                    user=user,
-                    defaults={
-                        'f_name': form.cleaned_data['first_name'],
-                        'l_name': form.cleaned_data['last_name'],
-                        'email': form.cleaned_data['email'],
-                        'phone': form.cleaned_data['phone']
-                    }
-                )
-
-                # Check if the selected account type is 'developer' and create a Developer instance if so
-                if form.cleaned_data['account_type'] == 'developer':
-                    Developer.objects.get_or_create(
-                        user=customer,  # Associate the Developer instance with the Customer
-                        defaults={'company_name': '', 'approved': False}
-                    )
-
-                # Set up the welcome email subject and message based on the user's account type
-                subject = f"Welcome to RiggStore, {user.first_name}!"
-                if form.cleaned_data['account_type'] == 'developer':
-                    # Message for developers
-                    message = f"""Hello {user.first_name},
-
-🎮 Welcome to RiggStore Developer Community! 🚀
-
-Your developer account has been successfully created. Here's what you can do next:
-1. Submit your games through our developer portal
-2. Access analytics for your published games
-3. Connect with our player community
-4. Get early access to developer resources and SDKs
-
-We're excited to see what amazing games you'll bring to our platform! Our team will review your developer application and get back to you within 3-5 business days.
-
-Need help? Reach out to our developer support team at dev-support@riggstore.com
-
-Happy developing!
-The RiggStore Team"""
-                else:
-                    # Message for regular users
-                    message = f"""Hello {user.first_name},
-
-🕹️ Welcome to RiggStore! Your gaming adventure begins now! 🎉
-
-As a RiggStore member, you get:
-✅ Exclusive access to weekly game deals
-✅ Curated recommendations based on your preferences
-✅ Wishlist and tracking features
-✅ Early access to sales and promotions
-
-Start exploring thousands of games in our catalog - new members get 15% off their first purchase with code WELCOME15!
-
-Need help? Our support team is always ready at support@riggstore.com
-
-Happy gaming!
-The RiggStore Team"""
-
-                # Send the welcome email to the user
-                send_mail(
+                subject = 'Verify Your RiggStore Account'
+                text_content = f'Your OTP is: {verification.otp}\nValid for 5 minutes.'
+                html_content = render_to_string('emails/otp_email.html', {
+                    'otp': verification.otp,
+                    'email': email
+                })
+                
+                msg = EmailMultiAlternatives(
                     subject,
-                    message,
+                    text_content,
                     settings.EMAIL_HOST_USER,
-                    [user.email],
-                    fail_silently=False
+                    [email]
                 )
-
-                # Log the user in after successful account creation
-                login(request, user)
-                messages.success(request, "Account Created Successfully")
-                # Redirect the user to the home page after sign-up
-                return redirect('home')
-
-            except IntegrityError as e:
-                # Handle any integrity errors during account creation
-                messages.error(request, "Account creation failed. Please try different credentials.")
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
             except Exception as e:
-                # Handle any other exceptions that may occur
-                messages.error(request, f"Error: {str(e)}")
-            # Render the signup page with the form in case of errors
-            return render(request, 'signup.html', {'form': form})
-        else:
-            # Render the signup page with the form in case of invalid input
-            return render(request, 'signup.html', {'form': form})
+                print(f"Error sending email: {str(e)}")
+                messages.error(request, "Failed to send verification email")
+                return redirect('signup')
+            
+            return redirect('verify_email', email=email)
+        
+        return render(request, 'signup.html', {'form': form})
     
-    # Render the signup page with an empty form if the method is not POST
     return render(request, 'signup.html', {'form': SignUpForm()})
 
+def verify_email(request, email):
+    if request.method == "POST":
+        verification = get_object_or_404(EmailVerification, email=email)
+        
+        if verification.otp == request.POST.get('otp') and verification.is_valid():
+            form_data = verification.form_data
+            
+            # Initial checks
+            if User.objects.filter(username=form_data['username']).exists():
+                return render(request, 'verify_email.html', {
+                    'email': email,
+                    'error': 'Username already taken'
+                })
+                
+            if User.objects.filter(email=email).exists():
+                return render(request, 'verify_email.html', {
+                    'email': email,
+                    'error': 'Email already registered'
+                })
+
+            try:
+                with transaction.atomic():
+                    # Create user (this triggers the Customer creation via signal)
+                    user = User.objects.create_user(
+                        username=form_data['username'],
+                        password=form_data['password'],
+                        first_name=form_data['first_name'],
+                        last_name=form_data['last_name'],
+                        email=form_data['email']
+                    )
+                    
+                    # Update the auto-created Customer
+                    customer = user.customer
+                    customer.phone = form_data['phone']
+                    customer.save()
+                    
+                    # Create developer profile if needed
+                    if form_data['account_type'] == 'developer':
+                        Developer.objects.create(
+                            user=customer,
+                            company_name='',
+                            approved=False
+                        )
+                    
+                    # Mark verification complete
+                    verification.is_verified = True
+                    verification.save()
+
+                    # Email sending outside transaction
+                    transaction.on_commit(lambda: send_welcome_email(user, form_data['account_type']))
+                    
+                    login(request, user)
+                    return redirect('home')
+
+            except IntegrityError as e:
+                return render(request, 'verify_email.html', {
+                    'email': email,
+                    'error': f"Account conflict: {str(e)}"
+                })
+
+            except Exception as e:
+                return render(request, 'verify_email.html', {
+                    'email': email,
+                    'error': "System error. Please try again later."
+                })
+
+        return render(request, 'verify_email.html', {
+            'email': email,
+            'error': 'Invalid or expired OTP'
+        })
+    
+    return render(request, 'verify_email.html', {'email': email})
+
+def send_welcome_email(user, account_type):
+    """Send welcome email with retries and better error handling"""
+    max_retries = 3
+    attempt = 0
+    
+    while attempt < max_retries:
+        try:
+            is_developer = account_type == 'developer'
+            subject = f'Welcome to RiggStore{" Developer" if is_developer else ""}!'
+            context = {
+                'first_name': user.first_name,
+                'is_developer': is_developer,
+                'email': user.email  # Add explicit email to context
+            }
+            
+            text_content = render_to_string('emails/welcome_email.txt', context)
+            html_content = render_to_string('emails/welcome_email.html', context)
+            
+            # Create email with explicit encoding
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+                reply_to=[settings.CONTACT_EMAIL],
+            )
+            email.attach_alternative(html_content, "text/html")
+            
+            # Add debug headers
+            email.extra_headers['X-Email-Type'] = 'welcome-email'
+            
+            # Send with timeout
+            email.send(fail_silently=False, timeout=10)
+            print(f"Successfully sent welcome email to {user.email}")
+            return
+            
+        except Exception as e:
+            attempt += 1
+            print(f"Attempt {attempt} failed: {str(e)}")
+            if attempt >= max_retries:
+                print(f"Failed to send welcome email after {max_retries} attempts")
+                # Consider logging to error monitoring system
+                return
+            time.sleep(2 ** attempt)  # Exponential backoff
+            
+def resend_otp(request, email):
+    verification = get_object_or_404(EmailVerification, email=email)
+    if verification.is_valid():
+        verification.delete()
+    
+    new_verification = EmailVerification.create_verification(
+        email=email,
+        form_data=verification.form_data
+    )
+    
+    try:
+        subject = 'Your New Verification Code'
+        text_content = f'Your new OTP is: {new_verification.otp}\nValid for 5 minutes.'
+        html_content = render_to_string('emails/otp_email.html', {
+            'otp': new_verification.otp,
+            'email': email
+        })
+        
+        msg = EmailMultiAlternatives(
+            subject,
+            text_content,
+            settings.EMAIL_HOST_USER,
+            [email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+    except Exception as e:
+        print(f"Error resending OTP: {str(e)}")
+        messages.error(request, "Failed to resend verification code")
+    
+    return redirect('verify_email', email=email)
 
 # Handle user login, authenticate and redirect appropriately.
 def login_user(request):
@@ -282,17 +378,26 @@ def edit_community(request, community_id):
 
 # Render the details of a specific community and its posts.
 def community_detail(request, community_id):
-    # Retrieve the community object or return a 404 if not found
     community_obj = get_object_or_404(Community, id=community_id)
+    is_member = False
     
-    # Prepare context data for rendering community detail view
+    if request.user.is_authenticated:
+        is_member = community_obj.members.filter(id=request.user.customer.id).exists()
+    
+    # Only get posts if user is member or creator
+    posts = Post.objects.none()
+    if is_member or request.user.customer == community_obj.created_by:
+        posts = Post.objects.filter(community=community_obj).order_by('-created_at')
+    
     context = {
-        'community_obj': community_obj,  # The community object being viewed
-        'posts': Post.objects.filter(community=community_obj).order_by('-created_at'),  # Retrieve posts associated with the community, ordered by creation date
-        'post_form': PostForm(),  # Form for creating a new post in the community
-        'other_communities': Community.objects.exclude(id=community_obj.id).order_by('-created_at')[:5]  # Suggest other communities except the current one, limited to 5
+        'community_obj': community_obj,
+        'posts': posts,
+        'other_communities': Community.objects.exclude(id=community_obj.id).order_by('-created_at')[:5],
+        'post_form': PostForm(),
+        'is_member': is_member,
+        'is_community_creator': request.user.is_authenticated and 
+                               request.user.customer == community_obj.created_by
     }
-    # Render the community detail template with the context data
     return render(request, 'community_detail.html', context)
 
 @login_required
@@ -709,6 +814,52 @@ def upload_profile_image(request):
             messages.error(request, f'Error updating profile image: {str(e)}')  # Error message on exception
     
     # Redirect to the account page after upload
+    return redirect('account')
+
+@login_required
+@transaction.atomic
+def delete_account(request):
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        user = request.user
+        
+        if not user.check_password(password):
+            messages.error(request, "Invalid password. Account deletion failed")
+            return redirect('account')
+        
+        try:
+            # Delete all related objects explicitly to ensure full cleanup
+            customer = user.customer
+            
+            # Delete developer-related data if exists
+            Developer.objects.filter(user=customer).delete()
+            
+            # Delete download history
+            DownloadHistory.objects.filter(user=customer).delete()
+            
+            # Delete orders and related items
+            orders = Order.objects.filter(customer=customer)
+            for order in orders:
+                OrderItem.objects.filter(order=order).delete()
+            orders.delete()
+            
+            # Delete customer profile
+            customer.delete()
+            
+            # Delete the user account
+            user.delete()
+            
+            # Logout the user
+            logout(request)
+            
+            messages.success(request, "Your account and all associated data have been permanently deleted")
+            return redirect('home')
+        
+        except Exception as e:
+            transaction.set_rollback(True)
+            messages.error(request, f"Account deletion failed: {str(e)}")
+            return redirect('account')
+    
     return redirect('account')
 
 # ======================

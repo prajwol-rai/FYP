@@ -2,6 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
+import random
+
+from django.db.models import Q
 
 # ======================
 # Core Models
@@ -20,12 +24,36 @@ class Category(models.Model):
 # User Related Models
 # ======================
 
+class EmailVerification(models.Model):
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+    form_data = models.JSONField()  # To store form data temporarily
+
+    def is_valid(self):
+        return (timezone.now() - self.created_at).seconds < 300 and not self.is_verified
+
+    @classmethod
+    def create_verification(cls, email, form_data):
+        # Delete any existing entries for this email OR username
+        cls.objects.filter(
+            Q(email=email) | 
+            Q(form_data__username=form_data['username'])
+        ).delete()
+        
+        return cls.objects.create(
+            email=email,
+            otp=str(random.randint(100000, 999999)),
+            form_data=form_data
+        )
+
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer', null=True, blank=True)
     f_name = models.CharField(max_length=50)
     l_name = models.CharField(max_length=50)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=15, blank=True, null=True)
+    email = models.EmailField()
+    phone = models.CharField(max_length=15, null=True, blank=True,)
     image = models.ImageField(upload_to='profile_pics', default='default.jpg')
 
     class Meta:

@@ -7,6 +7,8 @@ urlpatterns = [
     path('login/', views.login_user, name='login'),
     path('logout/', views.logout_user, name='logout'),
     path('signup/', views.signup_user, name='signup'),
+    path('verify-email/<str:email>/', views.verify_email, name='verify_email'),
+    path('resend-otp/<str:email>/', views.resend_otp, name='resend_otp'),
     
     # Community
     path('community/', views.community, name='community'),
@@ -33,6 +35,7 @@ urlpatterns = [
     path('change-password/', views.change_password, name='change_password'),
     path('upload-profile-image/', views.upload_profile_image, name='upload_profile_image'),
     path('verify-password/', views.verify_password, name='verify_password'),
+    path('delete-account/', views.delete_account, name='delete_account'),
     
     # Admin
     path('admin-panel/', views.admin_dashboard, name='admin_panel'),
