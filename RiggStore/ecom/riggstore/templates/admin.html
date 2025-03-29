@@ -15,6 +15,9 @@
         --warning-color: #f59e0b;
     }
 
+    .btn-icon i {
+        transition: transform 0.3s ease;
+    }
     .admin-container {
         max-width: 1400px;
         margin: 2rem auto;
@@ -93,7 +96,11 @@
         font-size: 0.875rem;
         font-weight: 500;
     }
-
+    
+    .badge-admin {
+        background: #f3e8ff;
+        color: #7c3aed;
+    }
     .badge-customer {
         background: #dbeafe;
         color: var(--primary-color);
@@ -211,82 +218,130 @@
     }
 
     .confirmation-modal {
-        display: none;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1000;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: grid;
+        place-items: center;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
     }
 
-    .modal-content {
-        background: white;
-        width: 90%;
-        max-width: 500px;
-        margin: 20vh auto;
-        padding: 20px;
-        border-radius: 8px;
-        transform: translateY(-50px);
-        transition: transform 0.3s ease;
-    }
+.confirmation-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
 
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #ddd;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-    }
+.modal-content {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 400px;
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-    .close-modal {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-    }
+.confirmation-modal.active .modal-content {
+  transform: translateY(0) scale(1);
+}
 
-    .warning-text {
-        color: #dc3545;
-        font-weight: bold;
-        margin-top: 10px;
-    }
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    .modal-footer {
-        margin-top: 20px;
-        text-align: right;
-    }
+.modal-header h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
 
-    /* Active states */
-    .confirmation-modal.active {
-        display: block;
-        opacity: 1;
-    }
+.close-modal {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-    .confirmation-modal.active .modal-content {
-        transform: translateY(0);
-    }
+.close-modal:hover {
+  background: var(--background-color);
+  color: var(--danger-color);
+}
 
-    @media (max-width: 768px) {
-        .table-header,
-        .table-row {
-            grid-template-columns: 1fr;
-            padding: 0.75rem;
-            gap: 0.5rem;
-        }
+.modal-body {
+    min-width: 600px;
+  padding: 1.5rem;
+  color: var(--text-color);
+}
 
-        .header-item {
-            display: none;
-        }
+.warning-text {
+  color: var(--danger-color);
+  font-weight: 500;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-        .user-details.active {
-            padding: 1rem;
-        }
-    }
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center; /* Add this line */
+}
+
+/* Add min-width to buttons */
+.modal-footer .btn {
+  min-width: 100px; /* Prevents buttons from getting too narrow */
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-align: center; /* Ensures text stays centered */
+}
+
+.modal-footer .btn.secondary {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+.modal-footer .btn.secondary:hover {
+  background: #e2e8f0;
+}
+
+.modal-footer .btn.danger {
+  background: var(--danger-color);
+  color: white;
+}
+
+.modal-footer .btn.danger:hover {
+  background: #dc2626;
+}
+
+/* Focus States */
+.btn:focus-visible,
+.close-modal:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+    
+
 </style>
 
 <div class="admin-container">
@@ -313,11 +368,17 @@
                 <div class="table-data">{{ user.f_name }} {{ user.l_name }}</div>
                 <div class="table-data">{{ user.email }}</div>
                 <div class="table-data">
-                    <span class="badge {% if user.developer %}badge-developer{% else %}badge-customer{% endif %}">
-                        {% if user.developer %}Developer{% else %}Customer{% endif %}
+                    <span class="badge 
+                        {% if user.user.is_superuser %}badge-admin
+                        {% elif user.developer %}badge-developer
+                        {% else %}badge-customer{% endif %}">
+                        {% if user.user.is_superuser %}Admin
+                        {% elif user.developer %}Developer
+                        {% else %}Customer{% endif %}
                     </span>
                 </div>
                 <div class="table-data actions">
+                    {% if not user.user.is_superuser and not user.user.is_staff %}
                     <form action="{% url 'delete_user' user.id %}" method="POST" class="inline-form">
                         {% csrf_token %}
                         <button type="button" 
@@ -329,6 +390,7 @@
                             <i class="fas fa-trash"></i>
                         </button>
                     </form>
+                    {% endif %}
                     <button class="btn-icon toggle-details" data-user="{{ user.id }}" title="View details">
                         <i class="fas fa-chevron-down"></i>
                     </button>
@@ -338,15 +400,18 @@
             <!-- User Details Panel -->
             <div class="user-details" id="user-details-{{ user.id }}">
                 <div class="details-grid">
+                {% if not user.user.is_superuser and not user.user.is_staff %}
                     <div class="detail-item">
                         <label>Phone:</label>
                         <span>{{ user.phone|default:"N/A" }}</span>
                     </div>
+                {% endif %}
                     <div class="detail-item">
                         <label>Email:</label>
                         <span>{{ user.email }}</span>
                     </div>
 
+                {% if not user.user.is_superuser and not user.user.is_staff %}
                     <!-- Communities Created -->
                     <div class="detail-item full-width">
                         <h4>Communities Created</h4>
@@ -362,6 +427,7 @@
                         {% else %}
                             <p>No communities created.</p>
                         {% endif %}
+                    
                     </div>
 
                     <!-- Communities Joined -->
@@ -380,18 +446,9 @@
                             <p>No communities joined.</p>
                         {% endif %}
                     </div>
+                {% endif %}
 
                     {% if user.developer %}
-                    <div class="detail-item full-width">
-                        <label>Company:</label>
-                        <span>{{ user.developer.company_name }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Approval Status:</label>
-                        <span class="status {% if user.developer.approved %}approved{% else %}pending{% endif %}">
-                            {% if user.developer.approved %} Approved{% else %} Pending{% endif %}
-                        </span>
-                    </div>
                     <div class="detail-item full-width">
                         <h4 class="games-title">
                             <i class="fas fa-gamepad"></i> Uploaded Games
@@ -529,6 +586,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Confirmation modal logic
         const modal = document.getElementById('confirmationModal');
         const itemName = document.getElementById('itemName');
         let deleteForm = null;
@@ -551,7 +609,6 @@
         document.getElementById('confirmDelete').addEventListener('click', () => {
             if(deleteForm) {
                 deleteForm.submit();
-                // Add loading state if needed
             }
             modal.classList.remove('active');
         });
@@ -570,6 +627,23 @@
                 modal.classList.remove('active');
                 deleteForm = null;
             }
+        });
+
+        // Toggle user details functionality
+        document.querySelectorAll('.toggle-details').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.dataset.user;
+                const detailsPanel = document.getElementById(`user-details-${userId}`);
+                const icon = this.querySelector('i');
+                
+                // Toggle the active class
+                detailsPanel.classList.toggle('active');
+                
+                // Rotate the chevron icon
+                icon.style.transform = detailsPanel.classList.contains('active') 
+                    ? 'rotate(180deg)'
+                    : 'rotate(0deg)';
+            });
         });
     });
 </script>
