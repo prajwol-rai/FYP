@@ -64,10 +64,12 @@ urlpatterns = [
 
     # Miscellaneous
     path('aboutus/', views.aboutus, name='aboutus'),
+    path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
+    path('admin/privacy-policy/update/', views.update_privacy_policy, name='update_privacy_policy'),
 
     #payment
-    path('initiate-payment/', views.initiate_khalti_payment, name='initiate_payment'),
-    path('verify-payment/', views.verify_khalti_payment, name='verify_payment'),
-    path('payment/success/', views.payment_success, name='payment_success'),
-    path('payment/failed/', views.payment_failed, name='payment_failed'),
+    path('create-checkout/', views.create_checkout, name='create-checkout'),
+    path('success/', views.payment_success, name='payment-success'),
+    path('failed/', views.payment_failed, name='payment-failed'),
+    path('webhook/', views.stripe_webhook, name='stripe-webhook'),
 ]

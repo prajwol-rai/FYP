@@ -1,7 +1,10 @@
+from decimal import Decimal
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import random
 
@@ -108,11 +111,9 @@ class Game(models.Model):
         return self.name
 
 class Order(models.Model):
-    product = models.ForeignKey(Game, on_delete=models.CASCADE)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    quantity = models.IntegerField(default=1)
-    # Add these new fields
-    purchase_order_id = models.CharField(max_length=50, unique=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True)
+    purchase_order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     payment_status = models.CharField(
         max_length=20,
         choices=[
@@ -122,13 +123,30 @@ class Order(models.Model):
         ],
         default='pending'
     )
-    khalti_payment_id = models.CharField(max_length=100, blank=True, null=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    # Keep existing fields
-    address = models.CharField(max_length=100, blank=True)
-    phone = models.CharField(max_length=20, blank=True)
-    date = models.DateTimeField(auto_now_add=True)  # Change from DateField
-    status = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.payment_status == 'completed' and not self.commissions.exists():
+            Commission.objects.create(
+                order=self,
+                platform_fee=self.total_amount * Decimal('0.30'),  # Use Decimal
+                developer_payout=self.total_amount * Decimal('0.70')  # Use Decimal
+            )
+        super().save(*args, **kwargs)
+
+class PaymentDetail(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment_details')
+    stripe_session_id = models.CharField(max_length=100)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3)
+    payment_method = models.CharField(max_length=50)
+    receipt_url = models.URLField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Payment for Order {self.order.id}"
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
@@ -137,12 +155,12 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
 class Commission(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='commissions')
     platform_fee = models.DecimalField(max_digits=10, decimal_places=2)
     developer_payout = models.DecimalField(max_digits=10, decimal_places=2)
-    payout_date = models.DateTimeField(null=True)
-    status = models.CharField(  # Fixed this line
-        max_length=20,  # Changed from max_digits to max_length
+    payout_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
         choices=[
             ('pending', 'Pending'),
             ('paid', 'Paid'),
@@ -150,7 +168,6 @@ class Commission(models.Model):
         ],
         default='pending'
     )
-
 # ======================
 # Community Models
 # ======================
@@ -322,12 +339,10 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     game = models.ForeignKey(Game, related_name='cart_items', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
 
-    def total_price(self):
-        return self.game.price * self.quantity
-
-    def __str__(self):
-        return f"{self.game.name} in cart of {self.cart.customer}"
+    class Meta:
+        unique_together = ('cart', 'game')
 
 
 class DownloadHistory(models.Model):
@@ -342,3 +357,22 @@ class DownloadHistory(models.Model):
 
     def __str__(self):
         return f"{self.user} downloaded {self.game} at {self.downloaded_at}"
+    
+
+class PrivacyPolicy(models.Model):
+    content = models.TextField()
+    effective_date = models.DateTimeField(default=timezone.now)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Privacy Policy"
+        ordering = ['-effective_date']
+
+    def __str__(self):
+        return f"Privacy Policy ({self.effective_date.strftime('%Y-%m-%d')})"
+
+    @classmethod
+    def get_latest_policy(cls):
+        return cls.objects.order_by('-effective_date').first()
+    
+

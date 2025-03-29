@@ -1,7 +1,7 @@
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm
 from django import forms
 from django.contrib.auth.models import User
-from .models import Customer, Community, Post, GameSubmission  # Updated imports
+from .models import Customer, Community, Post, GameSubmission, PrivacyPolicy  # Updated imports
 
 # Choices for account types during signup
 ACCOUNT_TYPE_CHOICES = [
@@ -172,4 +172,12 @@ class GameUploadForm(forms.ModelForm):
         ]
     widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
+        }
+    
+class PrivacyPolicyForm(forms.ModelForm):
+    class Meta:
+        model = PrivacyPolicy
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={'class': 'rich-text-editor'}),
         }

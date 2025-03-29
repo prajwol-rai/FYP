@@ -243,8 +243,8 @@
                 </td>
                 <td class="game-name">{{ item.game.name }}</td>
                 <td>{{ item.quantity }}</td>
-                <td class="price-highlight">Rs. {{ item.game.price }}</td>
-                <td class="price-highlight">Rs. {{ item.total_price }}</td>
+                <td class="price-highlight">${{ item.game.price }}</td>
+                <td class="price-highlight">${{ item.total_price }}</td>
                 <td>
                     <span class="remove-btn" onclick="removeCartItem('{{ item.id }}')">
                         <i class="fas fa-trash-alt"></i>
@@ -257,11 +257,11 @@
     
     <div class="checkout-section">
         <div class="selected-total">
-            Selected Total: <span id="selected-total">Rs. 0</span>
+            Selected Total: <span id="selected-total">$0</span>
         </div>
         <div class="checkout-buttons">
             <button class="checkout-btn payment-btn" id="payment-btn">
-                Proceed to Payment
+                Pay with Stripe
             </button>
             <button class="checkout-btn download-btn" id="download-btn">
                 Download Selected Games
@@ -275,6 +275,7 @@
     {% endif %}
 </div>
 
+<script src="https://js.stripe.com/v3/"></script>
 <script>
     function getCookie(name) {
         let cookieValue = null;
@@ -290,6 +291,7 @@
         }
         return cookieValue;
     }
+    const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
 
     document.addEventListener('DOMContentLoaded', () => {
         const checkboxes = document.querySelectorAll('.game-checkbox');
@@ -298,7 +300,7 @@
         const paymentBtn = document.querySelector('#payment-btn');
         const downloadBtn = document.querySelector('#download-btn');
         const csrftoken = getCookie('csrftoken');
-
+    
         // Update selection totals and button states
         function updateSelection() {
             let total = 0;
@@ -308,7 +310,7 @@
             checkboxes.forEach(checkbox => {
                 if (checkbox.checked) {
                     const price = parseFloat(
-                        checkbox.closest('tr').querySelector('.price-highlight').textContent.replace('Rs. ', '')
+                        checkbox.closest('tr').querySelector('.price-highlight').textContent.replace('$', '')
                     );
                     total += price;
                     if (price === 0) freeGamesSelected = true;
@@ -316,7 +318,7 @@
                 }
             });
 
-            selectedTotal.textContent = `Rs. ${total.toFixed(2)}`;
+            selectedTotal.textContent = `$${total.toFixed(2)}`;
             downloadBtn.style.display = freeGamesSelected ? 'inline-block' : 'none';
             paymentBtn.style.display = paidGamesSelected ? 'inline-block' : 'none';
         }
@@ -334,14 +336,12 @@
                 return;
             }
 
-            // For single file download
             if (freeGames.length === 1) {
                 const downloadUrl = freeGames[0].closest('.cart-item-row').dataset.downloadUrl;
                 window.location.href = downloadUrl;
                 return;
             }
 
-            // For multiple files - use zip download
             try {
                 downloadBtn.disabled = true;
                 downloadBtn.textContent = 'Preparing download...';
@@ -376,6 +376,55 @@
             } finally {
                 downloadBtn.disabled = false;
                 downloadBtn.textContent = 'Download Selected Games';
+            }
+        });
+
+        // Stripe payment handler
+        document.getElementById('payment-btn').addEventListener('click', async () => {
+            const paymentBtn = document.getElementById('payment-btn');
+            try {
+                paymentBtn.disabled = true;
+                paymentBtn.textContent = 'Processing...';
+
+                // Get selected items
+                const selectedItems = Array.from(document.querySelectorAll('.game-checkbox:checked'));
+                const gameIds = selectedItems.map(checkbox => 
+                    checkbox.closest('.cart-item-row').dataset.gameId
+                );
+
+                // Create checkout session
+                const response = await fetch('{% url "create-checkout" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ game_ids: gameIds })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Payment failed');
+                }
+
+                if (!data.id) {
+                    throw new Error('Missing session ID from server');
+                }
+
+                // Redirect to Stripe Checkout
+                const { error } = await stripe.redirectToCheckout({
+                    sessionId: data.id
+                });
+
+                if (error) throw error;
+
+            } catch (error) {
+                console.error('Payment error:', error);
+                alert(`Payment failed: ${error.message}`);
+            } finally {
+                paymentBtn.disabled = false;
+                paymentBtn.textContent = 'Pay with Stripe';
             }
         });
 
@@ -415,36 +464,6 @@
             console.error('Error removing item:', error);
         }
     };
-
-    // Payment handler
-    document.getElementById('payment-btn').addEventListener('click', async () => {
-        try {
-            const selectedGameIds = Array.from(document.querySelectorAll('.game-checkbox:checked'))
-                .map(checkbox => checkbox.closest('.cart-item-row').dataset.gameId);
-
-            const response = await fetch('{% url "initiate_payment" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    game_ids: selectedGameIds
-                })
-            });
-            
-            if (response.redirected) {
-                window.location.href = response.url;
-            } else {
-                const data = await response.json();
-                if (data.error) {
-                    alert('Payment initiation failed: ' + data.error);
-                }
-            }
-        } catch (error) {
-            console.error('Payment error:', error);
-            alert('Payment processing failed');
-        }
-    });
 </script>
+
 {% endblock %}

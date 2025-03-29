@@ -6,7 +6,7 @@ import uuid
 import zipfile
 import json
 import os
-from django.http import JsonResponse, FileResponse, HttpResponse
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse, FileResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -26,8 +26,8 @@ from ecom import settings
 
 from .models import (
     Category, Commission, CommunityMember, DownloadHistory, EmailVerification, Game, Customer,
-    Developer, Community, Order, OrderItem, Post, Comment, GameSubmission, GameScreenshot,
-    Cart, CartItem
+    Developer, Community, Order, OrderItem, PaymentDetail, Post, Comment, GameSubmission, GameScreenshot,
+    Cart, CartItem, PrivacyPolicy
 )
 from .forms import (
     CustomPasswordChangeForm, SignUpForm, UserEditForm, CommunityForm,
@@ -1320,8 +1320,11 @@ def delete_submission(request, submission_id):
 def cart_view(request):
     customer = request.user.customer
     cart, created = Cart.objects.get_or_create(customer=customer)
-    return render(request, 'cart.html', {'cart': cart})
-
+    context = {
+        'cart': cart,
+        'STRIPE_PUBLIC_KEY': settings.STRIPE_PUBLIC_KEY  # Add this line
+    }
+    return render(request, 'cart.html', context)
 
 @login_required
 def add_to_cart(request, game_id):
@@ -1442,128 +1445,277 @@ def remove_from_cart(request, item_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 # ======================
-#payments
-# ======================
-
-
-
-def initiate_khalti_payment(request):
-    # Get current user's cart
-    cart = request.user.customer.cart
-    cart_items = cart.items.all()
-    
-    # Calculate total amount in paisa
-    total_amount = sum(item.total_price() for item in cart_items) * 100
-    
-    # Create purchase order ID
-    purchase_order_id = f"PO-{uuid.uuid4().hex[:8]}"
-    
-    # Prepare Khalti payload
-    payload = {
-        "return_url": request.build_absolute_uri(reverse('verify_payment')),
-        "website_url": settings.SITE_URL,
-        "amount": int(total_amount),
-        "purchase_order_id": purchase_order_id,
-        "purchase_order_name": f"Game Purchase - {purchase_order_id}",
-        "customer_info": {
-            "name": f"{request.user.first_name} {request.user.last_name}",
-            "email": request.user.email,
-            "phone": request.user.customer.phone
-        }
-    }
-    
-    # Prepare headers
-    headers = {
-        "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    # Send request to Khalti
-    response = request.post(
-        f"{settings.KHALTI_API_URL}/epayment/initiate/",
-        json=payload,
-        headers=headers
-    )
-    
-    if response.status_code == 200:
-        # Create order record
-        order = Order.objects.create(
-            customer=request.user.customer,
-            purchase_order_id=purchase_order_id,
-            total_amount=Decimal(total_amount/100),
-            payment_status='pending'
-        )
-        
-        # Add cart items to order
-        for cart_item in cart_items:
-            order.product = cart_item.game
-            order.quantity = cart_item.quantity
-            order.save()
-        
-        # Store Khalti pidx
-        response_data = response.json()
-        order.khalti_payment_id = response_data['pidx']
-        order.save()
-        
-        return redirect(response_data['payment_url'])
-    
-    messages.error(request, "Payment initiation failed")
-    return redirect('cart_view')
-
-def verify_khalti_payment(request):
-    pidx = request.GET.get('pidx')
-    
-    # Verify payment with Khalti
-    headers = {
-        "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    verify_response = request.post(
-        f"{settings.KHALTI_API_URL}/epayment/lookup/",
-        json={"pidx": pidx},
-        headers=headers
-    )
-    
-    if verify_response.status_code == 200:
-        verification_data = verify_response.json()
-        order = Order.objects.get(purchase_order_id=verification_data['purchase_order_id'])
-        
-        if verification_data['status'] == 'Completed':
-            # Update order status
-            order.payment_status = 'completed'
-            order.save()
-            
-            # Create commission record
-            commission_rate = Decimal(0.20)  # 20% platform fee
-            platform_fee = order.total_amount * commission_rate
-            developer_payout = order.total_amount - platform_fee
-            
-            Commission.objects.create(
-                order=order,
-                platform_fee=platform_fee,
-                developer_payout=developer_payout,
-                status='pending'
-            )
-            
-            # Clear the cart
-            cart = request.user.customer.cart
-            cart.items.all().delete()
-            
-            return redirect('payment_success')
-    
-    return redirect('payment_failed')
-
-def payment_success(request):
-    return render(request, 'payment/success.html')
-
-def payment_failed(request):
-    return render(request, 'payment/failed.html')
-
-# ======================
 # Miscellaneous Views
 # ======================
 
 # Render the about us page.
 def aboutus(request):
     return render(request, 'aboutus.html', {})
+
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render, redirect, get_object_or_404
+from .forms import PrivacyPolicyForm
+
+def privacy_policy(request):
+    policy = PrivacyPolicy.get_latest_policy()
+    return render(request, 'privacy_policy.html', {'policy': policy})
+
+@staff_member_required
+def update_privacy_policy(request):
+    latest_policy = PrivacyPolicy.get_latest_policy()
+    
+    if request.method == 'POST':
+        form = PrivacyPolicyForm(request.POST)
+        if form.is_valid():
+            # Create new version instead of updating existing
+            new_policy = form.save(commit=False)
+            new_policy.effective_date = time.timezone.now()
+            new_policy.save()
+            messages.success(request, 'Privacy policy updated successfully')
+            return redirect('privacy_policy')
+    else:
+        form = PrivacyPolicyForm(instance=latest_policy)
+
+    return render(request, 'admin/update_privacy_policy.html', {
+        'form': form,
+        'title': 'Update Privacy Policy'
+    })
+
+
+# ======================
+# payments/views.py
+# ======================
+
+import stripe
+import json
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import redirect, render
+from .models import Order, OrderItem, CartItem
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+@csrf_exempt
+@login_required
+def create_checkout(request):
+    """Handle both single game and cart checkouts"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        user = request.user
+        customer = user.customer
+        
+        # Get cart items or single game
+        if 'game_ids' in data:  # Cart checkout
+            items = CartItem.objects.filter(
+                cart=customer.cart,
+                game__id__in=data['game_ids'],
+                game__price__gt=0
+            ).select_related('game')
+        else:  # Single game checkout
+            game = get_object_or_404(Game, id=data.get('game_id'))
+            items = [type('', (object,), {'game': game, 'quantity': 1})()]
+
+        if not items:
+            return JsonResponse({'error': 'No valid items'}, status=400)
+
+        # Create order with temporary total
+        order = Order.objects.create(
+            customer=customer,
+            total_amount=sum(item.game.price * item.quantity for item in items),
+            payment_status='pending'
+        )
+
+        # Create Stripe session with proper metadata types
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {'name': item.game.name},
+                    'unit_amount': int(item.game.price * 100),
+                },
+                'quantity': item.quantity,
+            } for item in items],
+            mode='payment',
+            success_url=request.build_absolute_uri(
+                f"{reverse('payment-success')}?session_id={{CHECKOUT_SESSION_ID}}"
+            ),
+            cancel_url=request.build_absolute_uri(reverse('cart_view')),
+            metadata={
+                'order_id': str(order.id),  # Store as string
+                'user_id': str(user.id),
+                'game_ids': json.dumps([item.game.id for item in items])
+            }
+        )
+
+        # Link Stripe payment intent immediately
+        order.stripe_payment_intent_id = session.payment_intent
+        order.save()
+
+        return JsonResponse({'id': session.id})
+
+    except Exception as e:
+        print(f"Checkout Error: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================
+# Payment Success View
+# ======================
+
+@login_required
+def payment_success(request):
+    try:
+        session_id = request.GET.get('session_id')
+        if not session_id:
+            print("Missing session_id in success URL")
+            return redirect('payment-failed')
+
+        # Retrieve Stripe session
+        try:
+            session = stripe.checkout.Session.retrieve(
+                session_id,
+                expand=['payment_intent']
+            )
+        except stripe.error.StripeError as e:
+            print(f"Stripe session retrieval failed: {str(e)}")
+            return redirect('payment-failed')
+
+        # Validate session metadata
+        if not all(key in session.metadata for key in ['order_id', 'user_id', 'game_ids']):
+            print("Missing metadata in Stripe session")
+            return redirect('payment-failed')
+
+        # Verify user ownership
+        if str(session.metadata['user_id']) != str(request.user.id):
+            print(f"User mismatch: Session user {session.metadata['user_id']} vs Request user {request.user.id}")
+            return redirect('payment-failed')
+
+        # Get and validate order
+        try:
+            order_id = int(session.metadata['order_id'])
+            order = Order.objects.get(
+                id=order_id,
+                customer=request.user.customer
+            )
+        except (ValueError, Order.DoesNotExist) as e:
+            print(f"Order lookup failed: {str(e)}")
+            return redirect('payment-failed')
+
+        # Update order status if needed
+        if order.payment_status != 'completed':
+            order.payment_status = 'completed'
+            order.total_amount = Decimal(session.amount_total) / Decimal(100)
+            order.stripe_payment_intent_id = session.payment_intent.id
+            order.save()
+
+            # Create payment details
+            PaymentDetail.objects.update_or_create(
+                order=order,
+                defaults={
+                    'stripe_session_id': session.id,
+                    'amount_paid': order.total_amount,
+                    'currency': session.currency.upper(),
+                    'payment_method': session.payment_method_types[0],
+                    'receipt_url': session.payment_intent.charges.data[0].receipt_url
+                }
+            )
+
+        # Clear cart items
+        try:
+            game_ids = json.loads(session.metadata['game_ids'])
+            CartItem.objects.filter(
+                cart=request.user.customer.cart,
+                game__id__in=game_ids
+            ).delete()
+        except Exception as e:
+            print(f"Cart cleanup error: {str(e)}")
+
+        return render(request, 'payments/success.html', {'order': order})
+
+    except Exception as e:
+        import traceback
+        print(f"Critical payment success error: {str(e)}\n{traceback.format_exc()}")
+        return redirect('payment-failed')
+
+# ======================
+# Stripe Webhook Handler
+# ======================
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        print(f"Invalid payload: {str(e)}")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        print(f"Invalid signature: {str(e)}")
+        return HttpResponse(status=400)
+
+    # Handle successful payment
+    if event.type == 'checkout.session.completed':
+        session = event.data.object
+        
+        try:
+            # Validate metadata
+            if not all(key in session.metadata for key in ['order_id', 'user_id', 'game_ids']):
+                print("Webhook missing required metadata")
+                return HttpResponse(status=400)
+
+            # Get order
+            order_id = int(session.metadata['order_id'])
+            order = Order.objects.get(id=order_id)
+
+            # Prevent duplicate processing
+            if order.payment_status == 'completed':
+                return HttpResponse(status=200)
+
+            # Update order
+            order.payment_status = 'completed'
+            order.total_amount = Decimal(session.amount_total) / Decimal(100)
+            order.stripe_payment_intent_id = session.payment_intent
+            order.save()
+
+            # Create commission
+            Commission.objects.get_or_create(
+                order=order,
+                defaults={
+                    'platform_fee': order.total_amount * Decimal('0.30'),
+                    'developer_payout': order.total_amount * Decimal('0.70')
+                }
+            )
+
+            # Create payment details if missing
+            PaymentDetail.objects.get_or_create(
+                order=order,
+                defaults={
+                    'stripe_session_id': session.id,
+                    'amount_paid': order.total_amount,
+                    'currency': session.currency.upper(),
+                    'payment_method': session.payment_method_types[0],
+                    'receipt_url': session.get('charges', {}).get('data', [{}])[0].get('receipt_url', '')
+                }
+            )
+
+        except Order.DoesNotExist:
+            print(f"Webhook order {order_id} not found")
+            return HttpResponse(status=404)
+        except Exception as e:
+            print(f"Webhook processing error: {str(e)}")
+            return HttpResponse(status=400)
+
+    return HttpResponse(status=200)
+
+def payment_failed(request):
+    return render(request, 'payments/failed.html')
