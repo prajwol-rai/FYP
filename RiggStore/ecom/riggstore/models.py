@@ -101,7 +101,11 @@ class Game(models.Model):
     developer = models.ForeignKey(Developer, on_delete=models.CASCADE)
     approved = models.BooleanField(default=False)
     
-
+    def get_download_url(self):
+        if self.submission:
+            return self.submission.game_file.url
+        return None
+    
     def delete(self, *args, **kwargs):
         """Delete game and its files"""
         self.image.delete(save=False)
@@ -135,6 +139,10 @@ class Order(models.Model):
                 developer_payout=self.total_amount * Decimal('0.70')  # Use Decimal
             )
         super().save(*args, **kwargs)
+    
+    games = models.ManyToManyField(Game, through='OrderItem')
+    def get_purchased_games(self):
+        return self.games.all()
 
 class PaymentDetail(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment_details')
@@ -350,7 +358,7 @@ class DownloadHistory(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     downloaded_at = models.DateTimeField(auto_now_add=True)
     download_type = models.CharField(max_length=10, choices=[('single', 'Single'), ('batch', 'Batch')])
-
+    visible = models.BooleanField(default=True)
     class Meta:
         ordering = ['-downloaded_at']
         verbose_name_plural = 'Download Histories'

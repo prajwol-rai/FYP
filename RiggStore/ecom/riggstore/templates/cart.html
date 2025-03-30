@@ -211,15 +211,11 @@
         }
     }
 </style>
- 
+
 <div class="cart-container">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     <h2 class="cart-title">🛒 Your Cart</h2>
     {% if cart.items.all %}
-    <div class="select-all">
-        <input type="checkbox" id="select-all" class="game-checkbox">
-        <label for="select-all">Select All Games</label>
-    </div>
     <table class="cart-table">
         <thead>
             <tr>
@@ -227,7 +223,6 @@
                 <th>Game</th>
                 <th>Quantity</th>
                 <th>Price</th>
-                <th>Total</th>
                 <th></th>
             </tr>
         </thead>
@@ -244,7 +239,6 @@
                 <td class="game-name">{{ item.game.name }}</td>
                 <td>{{ item.quantity }}</td>
                 <td class="price-highlight">${{ item.game.price }}</td>
-                <td class="price-highlight">${{ item.total_price }}</td>
                 <td>
                     <span class="remove-btn" onclick="removeCartItem('{{ item.id }}')">
                         <i class="fas fa-trash-alt"></i>
@@ -467,3 +461,5 @@
 </script>
 
 {% endblock %}
+
+ 

@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .payment-success-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f7fa;
+        padding: 2rem;
+    }
+
+    .success-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-width: 800px;
+        width: 100%;
+        padding: 2.5rem;
+    }
+
+    .success-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .checkmark-circle {
+        background: #4CAF50;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: scaleUp 0.5s ease-in-out;
+    }
+
+    .checkmark {
+        color: white;
+        font-size: 2.5rem;
+    }
+
+    .success-header h1 {
+        color: #2c3e50;
+        margin: 0;
+        font-size: 2rem;
+    }
+
+    .success-body {
+        margin: 2rem 0;
+    }
+
+    .success-message {
+        color: #666;
+        text-align: center;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .download-section {
+        margin-bottom: 2rem;
+    }
+
+    .game-list {
+        margin-top: 1.5rem;
+    }
+
+    .game-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        transition: transform 0.2s;
+    }
+
+    .game-item:hover {
+        transform: translateY(-2px);
+    }
+
+    .game-info {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-grow: 1;
+    }
+
+    .game-thumbnail {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .game-details h4 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+
+    .game-developer {
+        margin: 0.25rem 0 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .download-btn {
+        background: #4CAF50;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.2s;
+    }
+
+    .download-btn:hover {
+        background: #45a049;
+        color: white;
+        text-decoration: none;
+    }
+
+    .order-summary {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .summary-item span:first-child {
+        color: #666;
+    }
+
+    .summary-item span:last-child {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    .success-footer {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #eee;
+    }
+
+    .home-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #4CAF50;
+        text-decoration: none;
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #4CAF50;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .home-btn:hover {
+        background: #4CAF50;
+        color: white;
+        text-decoration: none;
+    }
+
+    .support-text {
+        margin-top: 1.5rem;
+        color: #666;
+    }
+
+    .support-text a {
+        color: #4CAF50;
+        text-decoration: none;
+    }
+
+    @keyframes scaleUp {
+        from { transform: scale(0); }
+        to { transform: scale(1); }
+    }
+
+    @media (max-width: 768px) {
+        .payment-success-container {
+            padding: 1rem;
+        }
+        
+        .success-card {
+            padding: 1.5rem;
+        }
+        
+        .game-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .download-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="payment-success-container">
+    <div class="success-card">
+        <div class="success-header">
+            <div class="checkmark-circle">
+                <i class="fas fa-check checkmark"></i>
+            </div>
+            <h1>Payment Successful! 🎉</h1>
+        </div>
+        
+        <div class="success-body">
+            <p class="success-message">
+                Thank you for your purchase! Your game files are ready to download.
+            </p>
+            
+            <div class="download-section">
+                <h3>Your Purchased Games:</h3>
+                <div class="game-list">
+                    {% for game in order.games.all %}
+                    <div class="game-item">
+                        <div class="game-info">
+                            <img src="{{ game.image.url }}" alt="{{ game.name }}" class="game-thumbnail">
+                            <div class="game-details">
+                                <h4>{{ game.name }}</h4>
+                                <p class="game-developer">by {{ game.developer.user.f_name }} {{ game.developer.user.l_name }}</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'download-purchased' game.id %}" class="download-btn">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="order-summary">
+                <div class="summary-item">
+                    <span>Order Number:</span>
+                    <span>{{ order.purchase_order_id }}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Total Paid:</span>
+                    <span>${{ order.total_amount }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="success-footer">
+            <p class="support-text">Need help? <a href="mailto:support@riggstore.com">Contact Support</a></p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

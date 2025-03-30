@@ -36,6 +36,8 @@ urlpatterns = [
     path('upload-profile-image/', views.upload_profile_image, name='upload_profile_image'),
     path('verify-password/', views.verify_password, name='verify_password'),
     path('delete-account/', views.delete_account, name='delete_account'),
+    path('delete-selected-downloads/', views.delete_selected_downloads, name='delete-selected-downloads'),
+    path('clear-all-downloads/', views.clear_all_downloads, name='clear-all-downloads'),
     
     # Admin
     path('admin-panel/', views.admin_dashboard, name='admin_panel'),
@@ -60,6 +62,7 @@ urlpatterns = [
 
     path('download/<int:game_id>/', views.download_game, name='download_game'),
     path('download-free/', views.download_free_games, name='download_free_games'),
+    path('download-purchased/<int:game_id>/', views.download_purchased_game, name='download-purchased'),
 
 
     # Miscellaneous
@@ -68,8 +71,8 @@ urlpatterns = [
     path('admin/privacy-policy/update/', views.update_privacy_policy, name='update_privacy_policy'),
 
     #payment
+    path('payment-failed/', views.payment_failed, name='payment-failed'),
     path('create-checkout/', views.create_checkout, name='create-checkout'),
-    path('success/', views.payment_success, name='payment-success'),
-    path('failed/', views.payment_failed, name='payment-failed'),
+    path('payment-success/', views.payment_success, name='payment-success'),
     path('webhook/', views.stripe_webhook, name='stripe-webhook'),
 ]

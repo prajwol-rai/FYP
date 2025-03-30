@@ -266,267 +266,239 @@
     }
 
     .game-upload-section {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    margin-top: 2rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.upload-heading {
-    font-size: 1.75rem;
-    margin-bottom: 1.5rem;
-    color: var(--text-color);
-}
-
-.game-upload-form .form-group {
-    margin-bottom: 1.25rem;
-}
-
-.game-upload-form label {
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.game-upload-form input[type="text"],
-.game-upload-form input[type="number"],
-.game-upload-form select,
-.game-upload-form textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-}
-
-.game-upload-form .form-check-label {
-    margin-left: 0.5rem;
-}
-
-.game-upload-form button {
-    margin-top: 1rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    border: none;
-    background: var(--primary-color);
-    color: white;
-    transition: background 0.2s ease;
-}
-
-.game-upload-form button:hover {
-    background: var(--secondary-color);
-}
-
-    /* Download History Section */
-    .download-history {
         background: white;
         border-radius: 1rem;
         padding: 2rem;
+        margin-top: 2rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
-    .history-heading {
-        font-size: 1.5rem;
+    .upload-heading {
+        font-size: 1.75rem;
         margin-bottom: 1.5rem;
+        color: var(--text-color);
+    }
+
+    .game-upload-form .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .game-upload-form label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .game-upload-form input[type="text"],
+    .game-upload-form input[type="number"],
+    .game-upload-form select,
+    .game-upload-form textarea {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+    }
+
+    .game-upload-form .form-check-label {
+        margin-left: 0.5rem;
+    }
+
+    .game-upload-form button {
+        margin-top: 1rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        background: var(--primary-color);
+        color: white;
+        transition: background 0.2s ease;
+    }
+
+    .game-upload-form button:hover {
+        background: var(--secondary-color);
+    }
+
+    /* Download History Section */
+    .download-history-section {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        margin-top: 2rem;
+        overflow: hidden;
+    }
+
+    .section-heading {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        position: relative;
         display: flex;
         align-items: center;
         gap: 0.75rem;
     }
 
-    .history-table {
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        overflow: hidden;
+    .section-heading::after {
+        content: "";
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, #e5e7eb 0%, transparent 100%);
+        margin-left: 1rem;
     }
 
-    .table-header {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        background: var(--background-color);
-        padding: 1rem;
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 600px;
+    }
+
+    .table thead {
+        background: #f8fafc;
+    }
+
+    .table th {
+        padding: 1rem 1.25rem;
+        font-size: 0.875rem;
         font-weight: 600;
+        color: #374151;
+        text-align: left;
+        border-bottom: 2px solid #e5e7eb;
     }
 
-    .table-row {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
+    .table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        vertical-align: middle;
     }
 
-    .table-row:last-child {
-        border-bottom: none;
+    .game-thumbnail {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid #e5e7eb;
+        transition: transform 0.2s ease;
     }
 
-    .empty-state {
-        padding: 2rem;
-        text-align: center;
-        color: #64748b;
+    .game-thumbnail:hover {
+        transform: scale(1.05);
+    }
+
+    .fw-bold {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .text-muted {
+        color: #6b7280 !important;
+    }
+
+    .alert-info {
+        background-color: #f8fafc;
+        border-color: #e5e7eb;
+        color: #6b7280;
+    }
+
+    /* Scrollbar Styling */
+    .table-responsive::-webkit-scrollbar {
+        height: 6px;
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Action Buttons */
+    .history-actions {
         display: flex;
-        flex-direction: column;
+        gap: 0.75rem;
         align-items: center;
-        gap: 0.5rem;
     }
 
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 6px;
+    }
+
+    .btn-outline-danger {
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        transition: all 0.2s ease;
+    }
+
+    .btn-outline-danger:hover {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    /* Checkboxes */
+    .download-checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #cbd5e1;
+        border-radius: 4px;
+        appearance: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .download-checkbox:checked {
+        background: #2563eb url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") no-repeat center;
+        border-color: #2563eb;
+    }
+
+    /* Responsive Design */
     @media (max-width: 768px) {
+        .download-history-section {
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        
+        .section-heading {
+            font-size: 1.25rem;
+        }
+        
+        .table th,
+        .table td {
+            padding: 0.75rem;
+        }
+        
+        .game-thumbnail {
+            width: 48px;
+            height: 48px;
+        }
+    }
+
+    @media (max-width: 480px) {
         .account-profile {
             grid-template-columns: 1fr;
         }
-
+        
         .profile-image {
-            height: 250px;
+            height: 200px;
         }
-
+        
         .detail-grid {
             grid-template-columns: 1fr;
         }
-
-        .wallet-item {
-            grid-column: span 1;
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-
-        .account-actions {
-            flex-direction: column;
-        }
     }
-    /* Download History Section */
-.download-history-section {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    margin-top: 2rem;
-}
-
-.section-heading {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--text-color);
-    border-bottom: 2px solid var(--border-color);
-    padding-bottom: 1rem;
-}
-
-.table-hover tbody tr {
-    transition: all 0.2s ease;
-}
-
-.table-hover tbody tr:hover {
-    background-color: var(--background-color);
-    transform: translateX(4px);
-}
-
-.game-thumbnail {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.table-light th {
-    background-color: var(--background-color);
-    color: var(--text-color);
-    font-weight: 600;
-    border-bottom: 2px solid var(--border-color);
-}
-
-.table-light td {
-    vertical-align: middle;
-    border-color: var(--border-color);
-}
-
-.badge {
-    padding: 0.5em 0.75em;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-}
-
-.bg-primary {
-    background-color: var(--primary-color) !important;
-}
-
-.bg-info {
-    background-color: var(--secondary-color) !important;
-}
-
-.btn-outline-secondary {
-    border-color: var(--border-color);
-    color: var(--text-color);
-    transition: all 0.2s ease;
-}
-
-.btn-outline-secondary:hover {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
-}
-
-.alert-info {
-    background-color: var(--background-color);
-    border-color: var(--border-color);
-    color: var(--text-color);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .game-thumbnail {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .table-responsive {
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        overflow: hidden;
-    }
-    
-    .table thead {
-        display: none;
-    }
-    
-    .table, .table tbody, .table tr, .table td {
-        display: block;
-        width: 100%;
-    }
-    
-    .table tr {
-        margin-bottom: 1rem;
-        border-bottom: 2px solid var(--border-color);
-    }
-    
-    .table td {
-        text-align: right;
-        padding-left: 50%;
-        position: relative;
-    }
-    
-    .table td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 1rem;
-        width: 45%;
-        padding-right: 1rem;
-        text-align: left;
-        font-weight: 600;
-        color: var(--text-color);
-    }
-    
-    .table td:first-child {
-        text-align: center;
-        padding-left: 1rem;
-    }
-    
-    .table td:first-child::before {
-        display: none;
-    }
-    
-    .btn-outline-secondary {
-        width: 100%;
-    }
-}
+   
 </style>
 
 <div class="account-container">
@@ -619,23 +591,40 @@
 
     <!-- Download History Section -->
     <div class="download-history-section mt-5">
-        <h2 class="section-heading mb-4"><i class="fas fa-history me-2"></i>Download History</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-heading mb-0"><i class="fas fa-history me-2"></i>Download History</h2>
+            <div class="history-actions">
+                <button class="btn btn-sm btn-outline-danger" id="clear-all-downloads">
+                    <i class="fas fa-trash me-2"></i>Clear All History
+                </button>
+            </div>
+        </div>
         
         {% if download_history %}
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
+                        <th style="width: 30px;">
+                            <input type="checkbox" class="download-checkbox"  id="select-all-downloads">
+                        </th>
                         <th>Game</th>
                         <th>Download Date</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for download in download_history %}
-                    <tr>
+                    <tr data-download-id="{{ download.id }}">
+                        <td>
+                            <input type="checkbox" class="download-checkbox" value="{{ download.id }}">
+                        </td>
                         <td>
                             <div class="d-flex align-items-center">
-                                <img src="{{ download.game.image.url }}" class="game-thumbnail me-3" alt="{{ download.game.name }}"onerror="this.src='{% static 'images/default_game.png' %}'">
+                                <img src="{% if download.game.image %}{{ download.game.image.url }}{% else %}{% static 'images/default_game.png' %}{% endif %}" 
+                                class="game-thumbnail me-3" 
+                                alt="{{ download.game.name }}"
+                                data-default-src="{% static 'images/default_game.png' %}"
+                                onerror="this.src = this.dataset.defaultSrc; this.onerror = null;">
                                 <div>
                                     <div class="fw-bold">{{ download.game.name }}</div>
                                     <div class="text-muted small">
@@ -649,6 +638,12 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        
+        <div class="mt-3">
+            <button class="btn btn-danger" id="delete-selected-downloads">
+                <i class="fas fa-trash me-2"></i>Delete Selected
+            </button>
         </div>
         {% else %}
         <div class="alert alert-info mb-0">
@@ -711,5 +706,73 @@
             reader.readAsDataURL(event.target.files[0]);
         }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Select All Checkbox
+        const selectAll = document.getElementById('select-all-downloads');
+        const checkboxes = document.querySelectorAll('.download-checkbox');
+        
+        selectAll.addEventListener('change', () => {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+        });
+
+        // Delete Selected
+        document.getElementById('delete-selected-downloads').addEventListener('click', async () => {
+            const selected = Array.from(document.querySelectorAll('.download-checkbox:checked'));
+            const downloadIds = selected.map(checkbox => checkbox.value);
+
+            try {
+                const response = await fetch('{% url "delete-selected-downloads" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ download_ids: downloadIds })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    selected.forEach(checkbox => {
+                        checkbox.closest('tr').remove();
+                    });
+                } else {
+                    alert('Error deleting selected items');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred');
+            }
+        });
+
+        // Clear All
+        document.getElementById('clear-all-downloads').addEventListener('click', async () => {
+            if (confirm('Are you sure you want to clear all download history?')) {
+                try {
+                    const response = await fetch('{% url "clear-all-downloads" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        document.querySelectorAll('.download-checkbox').forEach(checkbox => {
+                            checkbox.closest('tr').remove();
+                        });
+                    } else {
+                        alert('Error clearing history');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred');
+                }
+            }
+        });
+    });
 </script>
 {% endblock %}

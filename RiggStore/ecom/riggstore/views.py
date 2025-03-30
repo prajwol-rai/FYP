@@ -735,18 +735,17 @@ def delete_comment(request, comment_id):
 # User Account Views
 # ======================
 
-# Render the user's account page with their details and download history.
 @login_required
 def account(request):
-    customer = request.user.customer  # Get the current user's customer instance
-    # Retrieve the download history for the user, related to games, ordered by the most recent downloads
-    download_history = DownloadHistory.objects.filter(user=customer).select_related('game').order_by('-downloaded_at')[:20]
+    customer = request.user.customer
+    download_history = DownloadHistory.objects.filter(
+        user=customer, 
+        visible=True
+    ).select_related('game').order_by('-downloaded_at')[:20]
     
-    # Prepare context for rendering account page
     context = {
-        'download_history': download_history,  # List of recent downloads
+        'download_history': download_history,
     }
-    # Render the account page with the provided context
     return render(request, 'account.html', context)
 
 # Allow the user to edit their profile information.
@@ -861,6 +860,31 @@ def delete_account(request):
             return redirect('account')
     
     return redirect('account')
+
+@login_required
+@require_POST
+def delete_selected_downloads(request):
+    try:
+        data = json.loads(request.body)
+        download_ids = data.get('download_ids', [])
+        DownloadHistory.objects.filter(
+            id__in=download_ids,
+            user=request.user.customer
+        ).update(visible=False)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_POST
+def clear_all_downloads(request):
+    try:
+        DownloadHistory.objects.filter(
+            user=request.user.customer
+        ).update(visible=False)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 # ======================
 # Admin Views
@@ -1315,7 +1339,6 @@ def delete_submission(request, submission_id):
 # order Views
 # ======================
 
-
 @login_required
 def cart_view(request):
     customer = request.user.customer
@@ -1326,28 +1349,29 @@ def cart_view(request):
     }
     return render(request, 'cart.html', context)
 
+
 @login_required
 def add_to_cart(request, game_id):
     game = get_object_or_404(Game, id=game_id)
     customer = request.user.customer
-
+    
     cart, created = Cart.objects.get_or_create(customer=customer)
-    cart_item, created = CartItem.objects.get_or_create(cart=cart, game=game)
     
-    if not created:
-        cart_item.quantity += 1
-        cart_item.save()
+    if CartItem.objects.filter(cart=cart, game=game).exists():
+        messages.warning(request, f'"{game.name}" is already in your cart!')
+    else:
+        CartItem.objects.create(cart=cart, game=game)
+        messages.success(request, f'"{game.name}" added to cart successfully!')
     
-    # Clear cache for cart count
     cache.delete(f'cart_count_{request.user.id}')
     
-    return redirect('cart_view')
+    # Changed 'game_detail' to 'game_details' and added correct parameter
+    return redirect(request.META.get('HTTP_REFERER', reverse('game_details', kwargs={'game_id': game.id})))
 
 @receiver([post_save, post_delete], sender=CartItem)
 def clear_cart_cache(sender, instance, **kwargs):
     user = instance.cart.customer.user
     cache.delete(f'cart_count_{user.id}')
-
 
 @login_required
 def download_game(request, game_id):
@@ -1500,68 +1524,63 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 @csrf_exempt
 @login_required
 def create_checkout(request):
-    """Handle both single game and cart checkouts"""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-        user = request.user
-        customer = user.customer
-        
-        # Get cart items or single game
-        if 'game_ids' in data:  # Cart checkout
+    if request.method == 'POST':
+        try:
+            customer = request.user.customer
+            data = json.loads(request.body)
+            game_ids = data.get('game_ids', [])
+            
+            # Get cart items
             items = CartItem.objects.filter(
                 cart=customer.cart,
-                game__id__in=data['game_ids'],
-                game__price__gt=0
+                game__id__in=game_ids
             ).select_related('game')
-        else:  # Single game checkout
-            game = get_object_or_404(Game, id=data.get('game_id'))
-            items = [type('', (object,), {'game': game, 'quantity': 1})()]
 
-        if not items:
-            return JsonResponse({'error': 'No valid items'}, status=400)
+            if not items.exists():
+                return JsonResponse({'error': 'No items in cart'}, status=400)
 
-        # Create order with temporary total
-        order = Order.objects.create(
-            customer=customer,
-            total_amount=sum(item.game.price * item.quantity for item in items),
-            payment_status='pending'
-        )
+            # Create order
+            order = Order.objects.create(
+                customer=customer,
+                total_amount=sum(item.game.price * item.quantity for item in items),
+                payment_status='pending'
+            )
 
-        # Create Stripe session with proper metadata types
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {'name': item.game.name},
-                    'unit_amount': int(item.game.price * 100),
-                },
-                'quantity': item.quantity,
-            } for item in items],
-            mode='payment',
-            success_url=request.build_absolute_uri(
-                f"{reverse('payment-success')}?session_id={{CHECKOUT_SESSION_ID}}"
-            ),
-            cancel_url=request.build_absolute_uri(reverse('cart_view')),
-            metadata={
-                'order_id': str(order.id),  # Store as string
-                'user_id': str(user.id),
-                'game_ids': json.dumps([item.game.id for item in items])
-            }
-        )
+            # Create order items
+            for item in items:
+                OrderItem.objects.create(
+                    order=order,
+                    game=item.game,
+                    quantity=item.quantity,
+                    price=item.game.price
+                )
 
-        # Link Stripe payment intent immediately
-        order.stripe_payment_intent_id = session.payment_intent
-        order.save()
-
-        return JsonResponse({'id': session.id})
-
-    except Exception as e:
-        print(f"Checkout Error: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
+            # Create Stripe session
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {'name': item.game.name},
+                        'unit_amount': int(item.game.price * 100),
+                    },
+                    'quantity': item.quantity,
+                } for item in items],
+                mode='payment',
+                success_url = f"{settings.STRIPE_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=f"{settings.SITE_URL}/cart",
+                metadata={
+                    'order_id': str(order.id),
+                    'user_id': str(request.user.id),
+                    'game_ids': json.dumps([item.game.id for item in items])
+                }
+            )
+            return JsonResponse({'id': session.id})
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 # ======================
 # Payment Success View
@@ -1572,150 +1591,138 @@ def payment_success(request):
     try:
         session_id = request.GET.get('session_id')
         if not session_id:
-            print("Missing session_id in success URL")
             return redirect('payment-failed')
 
-        # Retrieve Stripe session
-        try:
-            session = stripe.checkout.Session.retrieve(
-                session_id,
-                expand=['payment_intent']
-            )
-        except stripe.error.StripeError as e:
-            print(f"Stripe session retrieval failed: {str(e)}")
+        # Retrieve and validate Stripe session
+        session = stripe.checkout.Session.retrieve(
+            session_id,
+            expand=['payment_intent', 'line_items']
+        )
+        
+        # Verify payment succeeded
+        if session.payment_status != 'paid':
             return redirect('payment-failed')
 
-        # Validate session metadata
-        if not all(key in session.metadata for key in ['order_id', 'user_id', 'game_ids']):
-            print("Missing metadata in Stripe session")
+        # Validate metadata exists
+        required_metadata = ['order_id', 'user_id', 'game_ids']
+        if not all(key in session.metadata for key in required_metadata):
             return redirect('payment-failed')
 
-        # Verify user ownership
+        # Verify user match
         if str(session.metadata['user_id']) != str(request.user.id):
-            print(f"User mismatch: Session user {session.metadata['user_id']} vs Request user {request.user.id}")
             return redirect('payment-failed')
 
-        # Get and validate order
-        try:
-            order_id = int(session.metadata['order_id'])
-            order = Order.objects.get(
-                id=order_id,
-                customer=request.user.customer
-            )
-        except (ValueError, Order.DoesNotExist) as e:
-            print(f"Order lookup failed: {str(e)}")
-            return redirect('payment-failed')
-
-        # Update order status if needed
+        # Get and update order
+        order = Order.objects.get(
+            id=session.metadata['order_id'],
+            customer=request.user.customer
+        )
+        
         if order.payment_status != 'completed':
             order.payment_status = 'completed'
-            order.total_amount = Decimal(session.amount_total) / Decimal(100)
+            order.total_amount = Decimal(session.amount_total) / 100
             order.stripe_payment_intent_id = session.payment_intent.id
             order.save()
 
-            # Create payment details
-            PaymentDetail.objects.update_or_create(
-                order=order,
-                defaults={
-                    'stripe_session_id': session.id,
-                    'amount_paid': order.total_amount,
-                    'currency': session.currency.upper(),
-                    'payment_method': session.payment_method_types[0],
-                    'receipt_url': session.payment_intent.charges.data[0].receipt_url
-                }
-            )
+            # Remove purchased games from cart
+            try:
+                game_ids = json.loads(session.metadata['game_ids'])
+                CartItem.objects.filter(
+                    cart=request.user.customer.cart,
+                    game__id__in=game_ids
+                ).delete()
+                print(f"Removed {len(game_ids)} items from cart")
+            except Exception as e:
+                print(f"Cart cleanup error: {str(e)}")
 
-        # Clear cart items
-        try:
-            game_ids = json.loads(session.metadata['game_ids'])
-            CartItem.objects.filter(
-                cart=request.user.customer.cart,
-                game__id__in=game_ids
-            ).delete()
-        except Exception as e:
-            print(f"Cart cleanup error: {str(e)}")
-
-        return render(request, 'payments/success.html', {'order': order})
+        return render(request, 'payments/success.html', {
+            'order': order,
+            'games': order.games.all()
+        })
 
     except Exception as e:
-        import traceback
-        print(f"Critical payment success error: {str(e)}\n{traceback.format_exc()}")
+        print(f"Payment success error: {str(e)}")
         return redirect('payment-failed')
 
 # ======================
 # Stripe Webhook Handler
 # ======================
-
 @csrf_exempt
 def stripe_webhook(request):
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-    event = None
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            payload, 
+            sig_header, 
+            settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
-        print(f"Invalid payload: {str(e)}")
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
-        print(f"Invalid signature: {str(e)}")
         return HttpResponse(status=400)
 
-    # Handle successful payment
     if event.type == 'checkout.session.completed':
         session = event.data.object
         
         try:
-            # Validate metadata
+            # Validate metadata exists
             if not all(key in session.metadata for key in ['order_id', 'user_id', 'game_ids']):
-                print("Webhook missing required metadata")
                 return HttpResponse(status=400)
 
-            # Get order
-            order_id = int(session.metadata['order_id'])
-            order = Order.objects.get(id=order_id)
+            order = Order.objects.get(id=session.metadata['order_id'])
+            
+            if order.payment_status != 'completed':
+                order.payment_status = 'completed'
+                order.total_amount = Decimal(session.amount_total) / 100
+                order.stripe_payment_intent_id = session.payment_intent
+                order.save()
 
-            # Prevent duplicate processing
-            if order.payment_status == 'completed':
-                return HttpResponse(status=200)
-
-            # Update order
-            order.payment_status = 'completed'
-            order.total_amount = Decimal(session.amount_total) / Decimal(100)
-            order.stripe_payment_intent_id = session.payment_intent
-            order.save()
-
-            # Create commission
-            Commission.objects.get_or_create(
-                order=order,
-                defaults={
-                    'platform_fee': order.total_amount * Decimal('0.30'),
-                    'developer_payout': order.total_amount * Decimal('0.70')
-                }
-            )
-
-            # Create payment details if missing
-            PaymentDetail.objects.get_or_create(
-                order=order,
-                defaults={
-                    'stripe_session_id': session.id,
-                    'amount_paid': order.total_amount,
-                    'currency': session.currency.upper(),
-                    'payment_method': session.payment_method_types[0],
-                    'receipt_url': session.get('charges', {}).get('data', [{}])[0].get('receipt_url', '')
-                }
-            )
-
+            return HttpResponse(status=200)
+            
         except Order.DoesNotExist:
-            print(f"Webhook order {order_id} not found")
             return HttpResponse(status=404)
         except Exception as e:
-            print(f"Webhook processing error: {str(e)}")
             return HttpResponse(status=400)
 
     return HttpResponse(status=200)
 
 def payment_failed(request):
     return render(request, 'payments/failed.html')
+
+
+
+@login_required
+def download_purchased_game(request, game_id):
+    try:
+        game = Game.objects.get(id=game_id)
+        customer = request.user.customer
+        
+        # Verify game was purchased
+        purchased = OrderItem.objects.filter(
+            order__customer=customer,
+            order__payment_status='completed',
+            game=game
+        ).exists()
+
+        if not purchased:
+            return HttpResponse("You don't own this game", status=403)
+
+        # Record download history
+        DownloadHistory.objects.create(
+            user=customer,
+            game=game,
+            download_type='single'
+        )
+
+        # Serve the file
+        if game.submission and game.submission.game_file:
+            game.submission.download_count += 1
+            game.submission.save()
+            return FileResponse(game.submission.game_file.open(), filename=game.submission.game_file.name)
+
+        return HttpResponse("File not available", status=404)
+
+    except Game.DoesNotExist:
+        return HttpResponse("Game not found", status=404)

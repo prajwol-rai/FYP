@@ -4,6 +4,7 @@
 {% block title %}{{ game.name }} Details{% endblock %}
 
 {% block content %}
+
 <section class="game-details-section py-5">
   <div class="container">
     <!-- Game Header -->
@@ -138,11 +139,16 @@
         <div class="purchase-section card border-0 shadow-lg">
           <div class="card-body text-center">
             <div class="d-grid gap-3">
-              <form method="post" action="{% url 'add_to_cart' game.id %}" style="margin: 0;">
+              <form method="post" action="{% url 'add_to_cart' game.id %}">
                 {% csrf_token %}
-                <button class="btn btn-lg w-100" style="background-color: #212529; color: white;">
-                  <i class="fas fa-shopping-cart me-2"></i>
-                  Buy Now - Rs. {{ game.price|floatformat:2 }}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button class="add-to-cart-btn w-100" {% if game in cart.games.all %}disabled{% endif %}>
+                  <i class="fas fa-shopping-cart"></i>
+                  {% if game in cart.games.all %}
+                    Added to Cart
+                  {% else %}
+                    Buy Now - Rs. {{ game.price|floatformat:2 }}
+                  {% endif %}
                 </button>
               </form>
               {% if game.submission.trailer %}
@@ -392,6 +398,49 @@
         margin-bottom: 1.5rem;
       }
     }
+
+    .add-to-cart-btn {
+    background-color: #212529;
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .add-to-cart-btn:hover {
+    background-color: #343a40;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+
+  .add-to-cart-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  .add-to-cart-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  .add-to-cart-btn i {
+    font-size: 1.2rem;
+  }
+
+  /* Shine effect animation */
+  @keyframes btn-shine {
+    0% { background-position: 0 0; }
+    100% { background-position: 200% 0; }
+  }
 </style>
 
 {% endblock %}

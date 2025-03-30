@@ -123,6 +123,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
 LOGIN_URL = '/login/'
 
+ALLOWED_HOSTS = ['*']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -140,3 +141,26 @@ EMAIL_HOST_PASSWORD = 'myst ztbn hojt kzgh'  # App-specific password
 # settings.py - Add Stripe configuration
 STRIPE_PUBLIC_KEY = 'pk_test_51R80bEQ3t66hyN8808foRjbhHIh7SHskOgSNC8DFznlBsdDBAye8OSuwE10jZAnB8m5yYGJCTye2kCpIEJHVZ4Wt00b7ewK4oa'
 STRIPE_SECRET_KEY = 'sk_test_51R80bEQ3t66hyN88K80k0nYmsr5KuUgHFK3mW2lxLhrR0TxZnXhdrgN2qIcyRK8BhTSZMROHT0epjt9dvoPb3JL500cZul03kb'
+
+
+# settings.py
+CSRF_TRUSTED_ORIGINS = [
+    "https://4b28-27-34-66-88.ngrok-free.app",
+    "http://4b28-27-34-66-88.ngrok-free.app"  # Add both HTTP and HTTPS
+]
+
+STRIPE_WEBHOOK_SECRET= 'whsec_yUjYdMlYs1Z9rkufeShrn4jDmadT6EDX'
+
+
+SITE_URL = "https://4b28-27-34-66-88.ngrok-free.app"
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CORS_ALLOWED_ORIGINS = [
+    "https://4b28-27-34-66-88.ngrok-free.app",
+    "http://localhost:8000"
+]
+
+
+STRIPE_SUCCESS_URL = f"{SITE_URL}/payment-success/"
+STRIPE_CANCEL_URL = f"{SITE_URL}/cart/"
