@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import random
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q
 
 # ======================
@@ -107,10 +107,16 @@ class Game(models.Model):
         return None
     
     def delete(self, *args, **kwargs):
-        """Delete game and its files"""
         self.image.delete(save=False)
         super().delete(*args, **kwargs)
 
+    @property
+    def discount_percentage(self):
+        if self.is_on_sale and self.sale_price < self.price:
+            discount = (self.price - self.sale_price) / self.price * 100
+            return discount
+        return 0
+    
     def __str__(self):
         return self.name
 
@@ -247,14 +253,13 @@ class GameSubmission(models.Model):
     categories = models.ManyToManyField(Category)
     description = models.TextField()
     price = models.DecimalField(default=0, decimal_places=2, max_digits=6)  
-
+    original_filename = models.CharField(max_length=255, blank=True, null=True)
     game_file = models.FileField(upload_to='uploads/games/')
     thumbnail = models.ImageField(upload_to='uploads/thumbnails/')
     trailer = models.FileField(upload_to='uploads/trailers/', null=True, blank=True)
 
     version = models.CharField(max_length=20)
-
-    # System Requirements
+    
     min_os = models.CharField(max_length=50)
     min_processor = models.CharField(max_length=50)
     min_ram = models.CharField(max_length=50)
@@ -272,16 +277,33 @@ class GameSubmission(models.Model):
     admin_notes = models.TextField(blank=True)
 
     file_size = models.PositiveIntegerField(null=True, blank=True)  # Automatically stored
-    download_count = models.PositiveIntegerField(default=0) 
+    download_count = models.PositiveIntegerField(default=0)
 
+    sale_enabled = models.BooleanField(default=False)
+    SALE_TYPES = [
+        ('summer', 'Summer Sale'),
+        ('spring', 'Spring Sale'),
+        ('winter', 'Winter Sale'),
+        ('custom', 'Custom'),
+    ]
+    sale_type = models.CharField(max_length=20, choices=SALE_TYPES, blank=True)
+    discount_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+
+    developer_notes = models.TextField(blank=True)
+    
     def delete(self, *args, **kwargs):
-        # Delete associated files
+        
         self.game_file.delete(save=False)
         self.thumbnail.delete(save=False)
         if self.trailer:
             self.trailer.delete(save=False)
             
-        # Delete screenshots and their files
+        
         for screenshot in self.gamescreenshot_set.all():
             screenshot.image.delete(save=False)
             screenshot.delete()

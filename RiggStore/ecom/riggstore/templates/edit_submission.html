@@ -4,10 +4,11 @@
 {% block content %}
 
 <style>
-    .submission-container {
-        max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 1rem;
+    .display-block {
+        display: block;
+    }
+    .display-none {
+        display: none;
     }
 
     .submission-card {
@@ -16,97 +17,52 @@
         border: none;
         overflow: hidden;
         background: #ffffff;
+        margin-bottom: 6%;
     }
-
     .submission-card-header {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background:#6366f1;
         color: white;
         padding: 1.5rem 2rem;
         border-bottom: 3px solid rgba(255,255,255,0.1);
     }
-
     .submission-card-header h4 {
         font-weight: 600;
         margin: 0;
         font-size: 1.5rem;
     }
-
     .submission-card-body {
         padding: 2rem;
         background: #f8f9fa;
     }
-
+    
     .form-group {
         margin-bottom: 1.5rem;
     }
-
     .form-label {
         font-weight: 500;
         color: #1f2937;
         margin-bottom: 0.5rem;
         display: block;
     }
-
     .form-control {
         border: 2px solid #e5e7eb;
         border-radius: 8px;
         padding: 0.75rem 1rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     .form-control:focus {
         border-color: #2563eb;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
-
-    .requirements-section {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin: 2rem 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-
-    .requirements-section h5 {
-        color: #2563eb;
-        border-bottom: 2px solid #e5e7eb;
-        padding-bottom: 0.75rem;
-        margin-bottom: 1.5rem;
-        font-weight: 600;
-    }
-
-    .category-checkboxes {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 0.75rem;
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-    }
-
-    .form-check {
-        padding: 0.75rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-    }
-
-    .form-check:hover {
-        border-color: #2563eb;
-        background: rgba(37, 99, 235, 0.03);
-    }
-
     .custom-file {
         position: relative;
         display: block;
     }
-
     .custom-file-input {
         opacity: 0;
         position: absolute;
         z-index: -1;
     }
-
     .custom-file-label {
         display: block;
         padding: 1.5rem;
@@ -117,18 +73,10 @@
         cursor: pointer;
         transition: all 0.3s ease;
     }
-
     .custom-file-label:hover {
         border-color: #2563eb;
         background: rgba(37, 99, 235, 0.05);
     }
-
-    .file-selected {
-        color: #2563eb;
-        border-color: #2563eb;
-        background: rgba(37, 99, 235, 0.05);
-    }
-
     .btn-submit {
         background: #2563eb;
         color: white;
@@ -140,36 +88,25 @@
         align-items: center;
         gap: 0.5rem;
     }
-
     .btn-submit:hover {
         background: #1d4ed8;
         transform: translateY(-1px);
     }
-
     .btn-submit:active {
         transform: translateY(0);
     }
-
-    @media (max-width: 768px) {
-        .submission-card-body {
-            padding: 1.5rem;
-        }
-        
-        .category-checkboxes {
-            grid-template-columns: 1fr;
-        }
-        
-        .requirements-section {
-            padding: 1rem;
-        }
+    
+    .sale-type-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
     }
-
-    select.form-control {
-        appearance: none;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 1rem center;
-        background-size: 1em;
+    .sale-type-option {
+        display: flex;
+        align-items: center;
+    }
+    .sale-type-option input {
+        margin-right: 0.25rem;
     }
 </style>
 
@@ -179,168 +116,117 @@
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         
-        <div class="card mt-4">
-            <div class="card-header">
+        <div class="card mt-4 submission-card">
+            <div class="card-header submission-card-header">
                 <h4>Edit {{ submission.title }}</h4>
             </div>
             
-            <div class="card-body">
-                <!-- Game Title -->
-                <div class="form-group">
-                    <label for="id_title">Game Title</label>
-                    <input type="text" class="form-control" id="id_title" name="title" 
-                           value="{{ submission.title }}" required>
-                </div>
-                
-                <!-- Game Description -->
-                <div class="form-group">
-                    <label for="id_description">Game Description</label>
-                    <textarea class="form-control" id="id_description" name="description" rows="4" required>{{ submission.description }}</textarea>
-                </div>
-                
+            <div class="card-body submission-card-body">
                 <!-- Game Price -->
                 <div class="form-group">
-                    <label for="id_price">Game Price (NPR)</label>
+                    <label for="id_price" class="form-label">Game Price (NPR)</label>
                     <input type="number" class="form-control" id="id_price" name="price" 
                            value="{{ submission.price }}" step="0.01" min="0" required>
                 </div>
 
-                <!-- Game Version -->
-                <div class="form-group">
-                    <label for="id_version">Game Version</label>
-                    <input type="text" class="form-control" id="id_version" name="version" 
-                           value="{{ submission.version }}" required>
-                </div>
-
-                <!-- Minimum Requirements -->
-                <h5>Minimum Requirements</h5>
-                <div class="form-group">
-                    <label for="id_min_os">OS</label>
-                    <select class="form-control" id="id_min_os" name="min_os" required>
-                        <option value="">Select OS</option>
-                        <option value="Windows 10" {% if submission.min_os == "Windows 10" %}selected{% endif %}>Windows 10</option>
-                        <option value="Windows 11" {% if submission.min_os == "Windows 11" %}selected{% endif %}>Windows 11</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_min_processor">Processor</label>
-                    <select class="form-control" id="id_min_processor" name="min_processor" required>
-                        <option value="">Select Processor</option>
-                        <option value="Intel Core i3" {% if submission.min_processor == "Intel Core i3" %}selected{% endif %}>Intel Core i3</option>
-                        <option value="Intel Core i5" {% if submission.min_processor == "Intel Core i5" %}selected{% endif %}>Intel Core i5</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_min_ram">Memory</label>
-                    <select class="form-control" id="id_min_ram" name="min_ram" required>
-                        <option value="">Select RAM</option>
-                        <option value="4 GB" {% if submission.min_ram == "4 GB" %}selected{% endif %}>4 GB</option>
-                        <option value="8 GB" {% if submission.min_ram == "8 GB" %}selected{% endif %}>8 GB</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_min_gpu">Graphics</label>
-                    <select class="form-control" id="id_min_gpu" name="min_gpu" required>
-                        <option value="">Select GPU</option>
-                        <option value="NVIDIA GTX 660" {% if submission.min_gpu == "NVIDIA GTX 660" %}selected{% endif %}>NVIDIA GTX 660</option>
-                        <option value="AMD Radeon HD 7850" {% if submission.min_gpu == "AMD Radeon HD 7850" %}selected{% endif %}>AMD Radeon HD 7850</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_min_directx">DirectX</label>
-                    <select class="form-control" id="id_min_directx" name="min_directx" required>
-                        <option value="">Select DirectX</option>
-                        <option value="11" {% if submission.min_directx == "11" %}selected{% endif %}>Version 11</option>
-                        <option value="12" {% if submission.min_directx == "12" %}selected{% endif %}>Version 12</option>
-                    </select>
-                </div>
-                
-                <!-- Recommended Requirements -->
-                <h5>Recommended Requirements</h5>
-                <div class="form-group">
-                    <label for="id_rec_os">OS</label>
-                    <select class="form-control" id="id_rec_os" name="rec_os" required>
-                        <option value="">Select OS</option>
-                        <option value="Windows 10" {% if submission.rec_os == "Windows 10" %}selected{% endif %}>Windows 10</option>
-                        <option value="Windows 11" {% if submission.rec_os == "Windows 11" %}selected{% endif %}>Windows 11</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_rec_processor">Processor</label>
-                    <select class="form-control" id="id_rec_processor" name="rec_processor" required>
-                        <option value="">Select Processor</option>
-                        <option value="Intel Core i5" {% if submission.rec_processor == "Intel Core i5" %}selected{% endif %}>Intel Core i5</option>
-                        <option value="AMD Ryzen 5" {% if submission.rec_processor == "AMD Ryzen 5" %}selected{% endif %}>AMD Ryzen 5</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_rec_ram">Memory</label>
-                    <select class="form-control" id="id_rec_ram" name="rec_ram" required>
-                        <option value="">Select RAM</option>
-                        <option value="8 GB" {% if submission.rec_ram == "8 GB" %}selected{% endif %}>8 GB</option>
-                        <option value="16 GB" {% if submission.rec_ram == "16 GB" %}selected{% endif %}>16 GB</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_rec_gpu">Graphics</label>
-                    <select class="form-control" id="id_rec_gpu" name="rec_gpu" required>
-                        <option value="">Select GPU</option>
-                        <option value="NVIDIA RTX 3060" {% if submission.rec_gpu == "NVIDIA RTX 3060" %}selected{% endif %}>NVIDIA RTX 3060</option>
-                        <option value="AMD Radeon RX 6700" {% if submission.rec_gpu == "AMD Radeon RX 6700" %}selected{% endif %}>AMD Radeon RX 6700</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="id_rec_directx">DirectX</label>
-                    <select class="form-control" id="id_rec_directx" name="rec_directx" required>
-                        <option value="">Select DirectX</option>
-                        <option value="12" {% if submission.rec_directx == "12" %}selected{% endif %}>Version 12</option>
-                    </select>
-                </div>
-
-                <!-- Categories Section -->
-                <div class="form-group">
-                    <label>Categories</label>
-                    <div class="category-checkboxes">
-                        {% for category in categories %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" 
-                                   name="categories" value="{{ category.id }}"
-                                   id="category_{{ category.id }}"
-                                   {% if category in submission.categories.all %}checked{% endif %}>
-                            <label class="form-check-label" for="category_{{ category.id }}">
-                                {{ category.name }}
-                            </label>
-                        </div>
-                        {% endfor %}
+                <!-- In edit_submission.html -->
+                <div class="pricing-preview">
+                    <div id="originalPrice" class="mb-1">
+                        Base Price: Rs. {{ submission.price|default:0|floatformat:2 }}
+                    </div>
+                    <div id="discountedPrice" class="text-success 
+                        {% if not submission.sale_enabled %}display-none{% else %}display-block{% endif %}">
+                        Discounted Price: Rs. <span id="calculatedPrice">
+                            {{ submission.sale_price|default:submission.price|floatformat:2 }}
+                        </span>
                     </div>
                 </div>
 
-                <!-- File Uploads -->
+                <!-- Game File Upload -->
                 <div class="form-group">
-                    <label for="id_thumbnail">Thumbnail Image</label>
-                    <div class="custom-file">
-                        <input type="file" class="custom-file-input" id="id_thumbnail" name="thumbnail" accept="image/*">
-                        <label class="custom-file-label" for="id_thumbnail">Choose main thumbnail (leave blank to keep current)</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="id_game_file">Game File (ZIP)</label>
+                    <label for="id_game_file" class="form-label">Game File (ZIP)</label>
                     <div class="custom-file">
                         <input type="file" class="custom-file-input" id="id_game_file" name="game_file" accept=".zip">
-                        <label class="custom-file-label" for="id_game_file">Choose ZIP file (leave blank to keep current)</label>
+                        <label class="custom-file-label" for="id_game_file">
+                            {% if submission.game_file %}
+                                Current: {{ submission.game_file.name|slice:":25" }}
+                            {% else %}
+                                Choose new ZIP file
+                            {% endif %}
+                        </label>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="id_trailer">Game Trailer</label>
-                    <div class="custom-file">
-                        <input type="file" class="custom-file-input" id="id_trailer" name="trailer" accept="video/*">
-                        <label class="custom-file-label" for="id_trailer">Choose video file (leave blank to keep current)</label>
+
+                <!-- Discount Section -->
+                <div class="border-top pt-3 mt-4">
+                    <h5 class="form-label">Discount Settings</h5>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="enable_discount" 
+                                   name="enable_discount" {% if submission.sale_enabled|default_if_none:False %}checked{% endif %}>
+                            <label class="custom-control-label" for="enable_discount">
+                                Enable Seasonal Discount
+                            </label>
+                        </div>
                     </div>
+
+                    <!-- Conditional Discount Fields -->
+                    <div id="discountFields" class="{% if submission.sale_enabled|default_if_none:False %}display-block{% else %}display-none{% endif %}">
+                        {% if submission.sale_enabled %}
+                            <div class="alert alert-warning">
+                                <strong>Sale Active:</strong> Current discount: {{ submission.discount_percentage|floatformat }}%
+                            </div>
+                        {% endif %}
+                        <div class="form-group">
+                            <label class="form-label">Sale Type</label>
+                            <div class="sale-type-group">
+                                <div class="sale-type-option">
+                                    <input type="radio" name="sale_type" value="summer" id="sale_summer"
+                                    {% if submission.sale_type == 'summer' %}checked{% endif %}>
+                                    <label for="sale_summer">Summer Sale (20% off)</label>
+                                </div>
+                                <div class="sale-type-option">
+                                    <input type="radio" name="sale_type" value="spring" id="sale_spring"
+                                    {% if submission.sale_type == 'spring' %}checked{% endif %}>
+                                    <label for="sale_spring">Spring Sale (15% off)</label>
+                                </div>
+                                <div class="sale-type-option">
+                                    <input type="radio" name="sale_type" value="winter" id="sale_winter"
+                                    {% if submission.sale_type == 'winter' %}checked{% endif %}>
+                                    <label for="sale_winter">Winter Sale (25% off)</label>
+                                </div>
+                                <div class="sale-type-option">
+                                    <input type="radio" name="sale_type" value="custom" id="sale_custom"
+                                    {% if submission.sale_type == 'custom' %}checked{% endif %}>
+                                    <label for="sale_custom">Custom Discount</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="customDiscountField" class="{% if submission.sale_type == 'custom' %}display-block{% else %}display-none{% endif %}">
+                            <div class="form-group">
+                                <label for="discount_percentage" class="form-label">Discount Percentage</label>
+                                <input type="number" class="form-control" id="discount_percentage" 
+                                    name="discount_percentage" value="{{ submission.discount_percentage|default_if_none:0 }}"
+                                    min="0" max="100" step="0.1">
+                                <small class="form-text text-muted">
+                                    Enter percentage discount (0-100%)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Developer Notes -->
+                <div class="form-group mt-4">
+                    <label for="developer_notes" class="form-label">Update Notes for Admin</label>
+                    <textarea class="form-control" id="developer_notes" name="developer_notes" 
+                              rows="3" placeholder="Explain what changes you've made...">{{ submission.developer_notes }}</textarea>
                 </div>
 
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Changes
+                    <button type="submit" class="btn btn-submit">
+                        <i class="fas fa-save"></i> Submit for Review
                     </button>
                     <a href="{% url 'developer_dashboard' %}" class="btn btn-secondary">
                         Cancel
@@ -352,45 +238,79 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-       //file input handling
-        const fileInputs = document.querySelectorAll('.custom-file-input');
-        fileInputs.forEach(input => {
-            input.addEventListener('change', function(e) {
-                const label = this.nextElementSibling;
-                if (this.files.length > 0) {
-                    label.classList.add('file-selected');
-                    label.innerHTML = `
-                        <i class="fas fa-file-upload mr-2"></i>
-                        ${this.files[0].name}<br>
-                        <small class="text-muted">Click to change file</small>
-                    `;
-                } else {
-                    label.classList.remove('file-selected');
-                    label.innerHTML = 'Choose file or drag here';
-                }
-            });
-        });
+    function calculatePrice() {
+        const basePrice = parseFloat(document.getElementById('id_price').value) || 0;
+        const saleType = document.querySelector('input[name="sale_type"]:checked')?.value;
+        let discount = 0;
 
-        // Drag and drop functionality
-        const fileLabels = document.querySelectorAll('.custom-file-label');
-        fileLabels.forEach(label => {
-            label.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                label.style.borderColor = '#2563eb';
-            });
-            
-            label.addEventListener('dragleave', (e) => {
-                label.style.borderColor = '#e5e7eb';
-            });
-            
-            label.addEventListener('drop', (e) => {
-                e.preventDefault();
-                const input = label.previousElementSibling;
-                input.files = e.dataTransfer.files;
-                input.dispatchEvent(new Event('change'));
-            });
-        });
+        if (saleType === 'summer') discount = 0.20;
+        else if (saleType === 'spring') discount = 0.15;
+        else if (saleType === 'winter') discount = 0.25;
+        else if (saleType === 'custom') {
+            discount = parseFloat(document.getElementById('discount_percentage').value) / 100 || 0;
+        }
+
+        const discountedPrice = basePrice * (1 - discount);
+        document.getElementById('calculatedPrice').textContent = discountedPrice.toFixed(2);
+        document.getElementById('discountedPrice').style.display = discount > 0 ? 'block' : 'none';
+    }
+
+    // Add event listeners
+    document.getElementById('id_price').addEventListener('input', calculatePrice);
+    document.querySelectorAll('input[name="sale_type"]').forEach(radio => {
+        radio.addEventListener('change', calculatePrice);
     });
+
+document.getElementById('discount_percentage').addEventListener('input', calculatePrice);
+document.addEventListener('DOMContentLoaded', function() {
+    // Discount section toggle
+    const discountToggle = document.getElementById('enable_discount');
+    const discountFields = document.getElementById('discountFields');
+    
+    // Radio buttons for sale type and custom discount field
+    const customDiscountField = document.getElementById('customDiscountField');
+    const saleTypeRadios = document.getElementsByName('sale_type');
+
+    function toggleDiscountFields() {
+        if (discountToggle.checked) {
+            discountFields.classList.remove('display-none');
+            discountFields.classList.add('display-block');
+        } else {
+            discountFields.classList.remove('display-block');
+            discountFields.classList.add('display-none');
+        }
+    }
+
+    function handleSaleType() {
+        let selectedValue = '';
+        saleTypeRadios.forEach(radio => {
+            if (radio.checked) {
+                selectedValue = radio.value;
+            }
+        });
+        if (selectedValue === 'custom') {
+            customDiscountField.classList.remove('display-none');
+            customDiscountField.classList.add('display-block');
+        } else {
+            customDiscountField.classList.remove('display-block');
+            customDiscountField.classList.add('display-none');
+            // Optionally, set predefined discount values if needed
+            const discountMap = {
+                'summer': 20,
+                'spring': 15,
+                'winter': 25
+            };
+            document.getElementById('discount_percentage').value = discountMap[selectedValue] || 0;
+        }
+    }
+
+    discountToggle.addEventListener('change', toggleDiscountFields);
+    saleTypeRadios.forEach(radio => radio.addEventListener('change', handleSaleType));
+    
+    // Initial state setup
+    toggleDiscountFields();
+    handleSaleType();
+});
 </script>
+
 {% endblock %}

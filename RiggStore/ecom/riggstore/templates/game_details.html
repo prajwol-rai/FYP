@@ -12,10 +12,17 @@
       <div class="card-body text-center">
         <h1 class="display-4 fw-bold text-dark mb-3">{{ game.name }}</h1>
         
-        <div class="price-display fs-1 fw-bold text-success mb-4">
-          Rs. {{ game.price|floatformat:2 }}
+        <div class="price-display fs-1 fw-bold mb-4">
           {% if game.is_on_sale %}
-            <span class="text-danger fs-4 ms-2"><del>Rs. {{ game.sale_price|floatformat:2 }}</del></span>
+              <span class="text-success">${{ game.sale_price|floatformat:2 }}</span>
+              <span class="text-danger fs-4 ms-2"><del>${{ game.price|floatformat:2 }}</del></span>
+              <div class="mt-2">
+                  <span class="badge bg-danger fs-5">
+                      {{ game.discount_percentage|floatformat:0 }}% OFF
+                  </span>
+              </div>
+          {% else %}
+              <span class="text-dark">${{ game.price|floatformat:2 }}</span>
           {% endif %}
         </div>
         <div class="meta-info row g-3">
@@ -145,11 +152,11 @@
                 <button class="add-to-cart-btn w-100" {% if game in cart.games.all %}disabled{% endif %}>
                   <i class="fas fa-shopping-cart"></i>
                   {% if game in cart.games.all %}
-                    Added to Cart
+                      Added to Cart
                   {% else %}
-                    Buy Now - Rs. {{ game.price|floatformat:2 }}
+                      Buy Now - ${% if game.is_on_sale %}{{ game.sale_price|floatformat:2 }}{% else %}{{ game.price|floatformat:2 }}{% endif %}
                   {% endif %}
-                </button>
+              </button>
               </form>
               {% if game.submission.trailer %}
                 <a href="{{ game.submission.trailer.url }}" 
@@ -186,11 +193,21 @@
 </section>
 
 <style>
-  .custom-bg {
-      background-color: #212529 !important; /* Using !important to override Bootstrap */
-      color: white; /* Set the text color to white for readability */
-  }
-      /* Enhanced CSS with existing color scheme */
+    .custom-bg {
+        background-color: #212529 !important; 
+        color: white; /
+    }
+    .price-display .badge {
+      vertical-align: middle;
+      font-weight: normal;
+    }
+    .text-decoration-line-through {
+        text-decoration: line-through;
+    }
+    .discount-badge {
+        letter-spacing: 0.5px;
+        padding: 0.5rem 1rem;
+    }
     .game-details-section {
       background: white;
       padding: 2rem 0;

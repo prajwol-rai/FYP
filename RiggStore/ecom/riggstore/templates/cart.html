@@ -2,6 +2,18 @@
 {% block title %}Your Cart{% endblock %}
 {% block content %}
 <style>
+
+    .sale-price {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #6c757d;
+        margin-left: 8px;
+        font-size: 0.9em;
+    }
     .cart-container {
         max-width: 1200px;
         margin: 2rem auto;
@@ -231,14 +243,21 @@
             <tr class="cart-item-row" 
                 data-item-id="{{ item.id }}" 
                 data-game-id="{{ item.game.id }}"
-                data-price="{{ item.game.price }}"
-                data-download-url="{% if item.game.price == 0 %}{% url 'download_game' item.game.id %}{% endif %}">
+                data-price="{% if item.game.is_on_sale %}{{ item.game.sale_price }}{% else %}{{ item.game.price }}{% endif %}"
+                data-download-url="{% if item.game.price == 0 or item.game.sale_price == 0 %}{% url 'download_game' item.game.id %}{% endif %}">
                 <td class="checkbox-cell">
                     <input type="checkbox" class="game-checkbox" {% if item.game.price == 0 %}checked{% endif %}>
                 </td>
                 <td class="game-name">{{ item.game.name }}</td>
                 <td>{{ item.quantity }}</td>
-                <td class="price-highlight">${{ item.game.price }}</td>
+                <td class="price-highlight">
+                    {% if item.game.is_on_sale %}
+                        <span class="sale-price">${{ item.game.sale_price }}</span>
+                        <del class="original-price">${{ item.game.price }}</del>
+                    {% else %}
+                        ${{ item.game.price }}
+                    {% endif %}
+                </td>
                 <td>
                     <span class="remove-btn" onclick="removeCartItem('{{ item.id }}')">
                         <i class="fas fa-trash-alt"></i>

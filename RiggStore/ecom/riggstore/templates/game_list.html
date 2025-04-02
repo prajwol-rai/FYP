@@ -117,12 +117,18 @@
                             
                             <h5 class="card-title mb-3 text-dark">{{ game.name }}</h5>
                             
+                            {% if game.is_on_sale %}
+                            <span class="badge bg-danger position-absolute top-0 end-0 m-2">
+                                {{ game.discount_percentage|floatformat:0 }}% OFF
+                            </span>
+                            {% endif %}
+
                             <div class="d-flex align-items-center mb-4">
                                 {% if game.is_on_sale %}
-                                <h4 class="text-success mb-0">₹{{ game.sale_price }}</h4>
-                                <small class="text-muted ms-2 text-decoration-line-through">₹{{ game.price }}</small>
+                                <h4 class="text-success mb-0">${{ game.sale_price|floatformat:2 }}</h4>
+                                <small class="text-muted ms-2 text-decoration-line-through">${{ game.price|floatformat:2 }}</small>
                                 {% else %}
-                                <h4 class="text-dark mb-0">₹{{ game.price }}</h4>
+                                <h4 class="text-dark mb-0">${{ game.price|floatformat:2 }}</h4>
                                 {% endif %}
                             </div>
                             
@@ -156,7 +162,17 @@
         --bs-success: #198754;
         --bs-dark: #212529;
     }
-
+    .price-display .badge {
+        vertical-align: middle;
+        font-weight: normal;
+    }
+    .text-decoration-line-through {
+        text-decoration: line-through;
+    }
+    .discount-badge {
+        letter-spacing: 0.5px;
+        padding: 0.5rem 1rem;
+    }
     .game-store .dropdown-menu {
         max-height: 60vh;
         overflow-y: auto;

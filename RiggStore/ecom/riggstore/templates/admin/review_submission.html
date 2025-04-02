@@ -11,7 +11,7 @@
             
             <div class="card-body">
                 <div class="row">
-                    <!-- Main Submission Details -->
+                   
                     <div class="col-md-8">
                         <div class="mb-4">
                             <h4>Game Details</h4>
@@ -27,6 +27,36 @@
                                 
                                 <dt class="col-sm-3">Description</dt>
                                 <dd class="col-sm-9">{{ submission.description }}</dd>
+                                
+                            
+                                <dt class="col-sm-3">Price</dt>
+                                <dd class="col-sm-9">
+                                    <div class="price-container">
+                                        {% if submission.sale_enabled %}
+                                            <span class="original-price text-muted">Rs. {{ submission.price|floatformat:2 }}</span>
+                                            → 
+                                            <span class="sale-price text-success">Rs. {{ submission.sale_price|floatformat:2 }}</span>
+                                            <br>
+                                            <small class="text-muted">
+                                                ({{ submission.sale_type|title }} discount - {{ submission.discount_percentage|floatformat:0 }}%)
+                                            </small>
+                                        {% else %}
+                                            Rs. {{ submission.price|floatformat:2 }}
+                                        {% endif %}
+                                    </div>
+                                </dd>
+                                
+                                <dt class="col-sm-3">Discount</dt>
+                                <dd class="col-sm-9">
+                                    {% if submission.sale_enabled %}
+                                        {{ submission.sale_type|title }}: {{ submission.discount_percentage }}%
+                                    {% else %}
+                                        None
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-3">Developer Note</dt>
+                                <dd class="col-sm-9">{{ submission.developer_notes }}</dd>
                             </dl>
                         </div>
 
@@ -57,7 +87,7 @@
                         </div>
                     </div>
 
-                    <!-- Sidebar with Actions -->
+                    
                     <div class="col-md-4">
                         <div class="card mb-3">
                             <div class="card-body">
@@ -72,7 +102,7 @@
                                             <i class="fas fa-times button-icon"></i> Reject
                                         </button>
                                     </div>
-                                    <!-- Hidden inputs for action and confirmation flag -->
+                                  
                                     <input type="hidden" name="action" id="action-input" value="">
                                     <input type="hidden" name="confirmed" id="confirmed-input" value="false">
                                 </form>
@@ -195,6 +225,20 @@
     #review-page .card:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .price-container {
+        display: inline-block;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        margin-right: 0.5rem;
+    }
+
+    .sale-price {
+        font-weight: bold;
+        font-size: 1.1em;
     }
     #review-page .card-header {
         background: #3a485c;

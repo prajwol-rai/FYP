@@ -6,6 +6,7 @@ import uuid
 import zipfile
 import json
 import os
+from django.forms import ValidationError
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse, FileResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -33,7 +34,15 @@ from .forms import (
     CustomPasswordChangeForm, SignUpForm, UserEditForm, CommunityForm,
     PostForm, 
 )
+import stripe
+import json
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import redirect, render
+from .models import Order, OrderItem, CartItem
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
 # ======================
 # Authentication Views
 # ======================
@@ -515,27 +524,29 @@ def demote_to_member(request, community_id, user_id):
 
 @login_required
 def kick_member(request, community_id, user_id):
-    # Retrieve the community or return a 404 if not found
     community = get_object_or_404(Community, id=community_id)
-    # Retrieve the user or return a 404 if not found
     user = get_object_or_404(User, id=user_id)
-    customer = user.customer  # Get the customer's instance associated with the user
+    customer = user.customer
 
-    # Check if the user being kicked is the creator of the community
+    # Check if current user is admin OR moderator
+    is_moderator = CommunityMember.objects.filter(
+        community=community,
+        customer=request.user.customer,
+        role='moderator'
+    ).exists()
+
     if customer == community.created_by:
         messages.error(request, "You cannot kick the community creator.")
         return redirect('community_members', community_id=community.id)
 
-    # Check if the current user is an admin of the community
-    if request.user.customer in community.admins.all():
-        # Remove the customer from both the community members and CommunityMember entries
+    # Updated condition to include moderators
+    if request.user.customer in community.admins.all() or is_moderator:
         community.members.remove(customer)
         CommunityMember.objects.filter(
             community=community,
             customer=customer
         ).delete()
     
-    # Redirect to the community members page
     return redirect('community_members', community_id=community.id)
 
 
@@ -675,60 +686,58 @@ def create_comment(request, post_id):
         }, status=500)
 
 @login_required
-@require_POST  # Ensure this view only handles POST requests
+@require_POST
 def delete_post(request, post_id):
     try:
-        # Retrieve the post or return a 404 if not found
         post = get_object_or_404(Post, id=post_id)
-        user = request.user.customer  # Get the current user's customer instance
-        community = post.community  # Retrieve the associated community of the post
+        user = request.user.customer
+        community = post.community
 
-        # Check if the user is the post author, community owner, or a moderator
-        is_moderator = community.communitymember_set.filter(customer=user, role='moderator').exists()
+        is_moderator = community.communitymember_set.filter(
+            customer=user, 
+            role='moderator'
+        ).exists()
+        
         allowed = (
-            user == post.author or  # Check if the user is the author of the post
-            user == community.created_by or  # Check if the user is the owner of the community
-            is_moderator  # Check if the user is a moderator in the community
+            user == post.author or
+            user == community.created_by or
+            is_moderator
         )
         
-        # If the user is not authorized to delete the post, return an error
         if not allowed:
             return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
             
-        # Delete the post
         post.delete()
-        return JsonResponse({'success': True})  # Return success response
+        return JsonResponse({'success': True})
     except Exception as e:
-        # Handle any exceptions and return an error response
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
-@require_POST  # Ensure this view only handles POST requests
+@require_POST
 def delete_comment(request, comment_id):
     try:
-        # Retrieve the comment or return a 404 if not found
         comment = get_object_or_404(Comment, id=comment_id)
-        user = request.user.customer  # Get the current user's customer instance
-        community = comment.post.community  # Retrieve the associated community of the comment
+        user = request.user.customer
+        community = comment.post.community
 
-        # Check if the user is the comment author, post author, community owner, or a moderator
-        is_moderator = community.communitymember_set.filter(customer=user, role='moderator').exists()
+        is_moderator = community.communitymember_set.filter(
+            customer=user, 
+            role='moderator'
+        ).exists()
+        
         allowed = (
-            user == comment.user or  # Check if the user is the author of the comment
-            user == comment.post.author or  # Check if the user is the author of the post containing the comment
-            user == community.created_by or  # Check if the user is the owner of the community
-            is_moderator  # Check if the user is a moderator in the community
+            user == comment.user or
+            user == comment.post.author or
+            user == community.created_by or
+            is_moderator
         )
         
-        # If the user is not authorized to delete the comment, return an error
         if not allowed:
             return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
             
-        # Delete the comment
         comment.delete()
-        return JsonResponse({'success': True})  # Return success response
+        return JsonResponse({'success': True})
     except Exception as e:
-        # Handle any exceptions and return an error response
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 # ======================
@@ -990,6 +999,8 @@ def game_list(request):
     
     # Sorting functionality
     sort_map = {
+        'price_asc': 'sale_price' if games.is_on_sale else 'price',
+        'price_desc': '-sale_price' if games.is_on_sale else '-price',
         'price_asc': 'price',  # Sort by price ascending
         'price_desc': '-price',  # Sort by price descending
         'name_asc': 'name',  # Sort by name ascending
@@ -1196,6 +1207,8 @@ def review_submission(request, submission_id):
 
         action = request.POST.get('action')  # Get the action to perform (approve/reject)
         notes = request.POST.get('notes', '')  # Get any admin notes provided
+        # Also get developer notes from the form (if provided)
+        dev_notes = request.POST.get('developer_notes', '')
 
         try:
             if action == 'approve':
@@ -1214,13 +1227,15 @@ def review_submission(request, submission_id):
                         'price': submission.price,
                         'image': submission.thumbnail,
                         'approved': True,
-                        'sale_price': Decimal('0.00'),  # Default sale price
-                        'is_on_sale': False  # Default sale status
+                        'sale_price': submission.price * (1 - submission.discount_percentage/100),
+                        'is_on_sale': submission.sale_enabled
                     }
                 )
+
                 game.categories.set(submission.categories.all())  # Associate categories with the game
                 submission.status = 'approved'  # Update submission status
                 messages.success(request, 'Game approved and published!')  # Success message
+
             elif action == 'reject':
                 # Check if the submission is still pending
                 if submission.status != 'pending':
@@ -1231,8 +1246,11 @@ def review_submission(request, submission_id):
                 submission.status = 'rejected'
                 messages.warning(request, 'Submission rejected.')  # Warning message
 
-            submission.admin_notes = notes  # Save any notes from the admin
+            # Update admin notes and also update developer notes (if any)
+            submission.admin_notes = notes  
+            submission.developer_notes = dev_notes  
             submission.save()  # Save the submission with updated status and notes
+
             return redirect('review_submissions')  # Redirect to the list of submissions
 
         except Exception as e:
@@ -1240,82 +1258,67 @@ def review_submission(request, submission_id):
             messages.error(request, f'Error: {str(e)}')  # Error message
             return redirect('review_submissions')  # Redirect to the list of submissions
 
-    # Ensure the path to the template is correct and render the review submission page
+    # For GET requests, render the review submission page with submission data and categories
     return render(request, 'admin/review_submission.html', {
         'submission': submission,  # Pass the submission object to the template
         'categories': submission.categories.all()  # Pass the categories associated with the submission
     })
 
-@login_required
+
 def edit_submission(request, submission_id):
     try:
         customer = request.user.customer
-        developer = customer.developer
-        submission = get_object_or_404(GameSubmission, id=submission_id, developer=developer)
-        categories = Category.objects.all()
-
+        submission = get_object_or_404(GameSubmission, id=submission_id, developer=customer.developer)
+        
         if request.method == 'POST':
             try:
-                # Update text fields
-                submission.title = request.POST['title']
-                submission.description = request.POST['description']
-                submission.price = Decimal(request.POST['price'])
-                submission.version = request.POST['version']
+                # Update price
+                submission.price = Decimal(request.POST.get('price', submission.price))
                 
-                # Update system requirements
-                submission.min_os = request.POST['min_os']
-                submission.min_processor = request.POST['min_processor']
-                submission.min_ram = request.POST['min_ram']
-                submission.min_gpu = request.POST['min_gpu']
-                submission.min_directx = request.POST['min_directx']
-                submission.rec_os = request.POST['rec_os']
-                submission.rec_processor = request.POST['rec_processor']
-                submission.rec_ram = request.POST['rec_ram']
-                submission.rec_gpu = request.POST['rec_gpu']
-                submission.rec_directx = request.POST['rec_directx']
+                # Determine if sale is enabled
+                submission.sale_enabled = 'enable_discount' in request.POST
+                submission.sale_type = request.POST.get('sale_type', '')
+                
+                # Calculate discount and sale price (for validation, but don't save to submission)
+                discount = Decimal('0')
+                if submission.sale_enabled:
+                    if submission.sale_type == 'summer':
+                        discount = Decimal('0.20')
+                    elif submission.sale_type == 'spring':
+                        discount = Decimal('0.15')
+                    elif submission.sale_type == 'winter':
+                        discount = Decimal('0.25')
+                    elif submission.sale_type == 'custom':
+                        discount = Decimal(request.POST.get('discount_percentage', '0')) / Decimal('100')
 
-                # Handle file updates
-                if 'thumbnail' in request.FILES:
-                    submission.thumbnail = request.FILES['thumbnail']
+                submission.discount_percentage = discount * 100  # Save discount percentage
+                
+                # Remove line setting submission.sale_price
+                
+                # Update game file
                 if 'game_file' in request.FILES:
                     submission.game_file = request.FILES['game_file']
-                if 'trailer' in request.FILES:
-                    submission.trailer = request.FILES['trailer']
-
-                # Update categories
-                category_ids = request.POST.getlist('categories')
-                submission.categories.set(category_ids)
-
-                # Handle status changes
+                
+                # Developer notes
+                submission.developer_notes = request.POST.get('developer_notes', '')
+                
                 if submission.status == 'approved':
                     submission.status = 'pending'
-                    messages.info(request, "Resubmitted for approval after edits")
-
-                # Handle screenshots
-                if 'screenshots' in request.FILES:
-                    submission.gamescreenshot_set.all().delete()
-                    for file in request.FILES.getlist('screenshots'):
-                        GameScreenshot.objects.create(game_submission=submission, image=file)
-
+                    messages.info(request, "Resubmitted for approval after edits.")
+                
                 submission.save()
                 messages.success(request, "Submission updated successfully!")
                 return redirect('developer_dashboard')
-
-            except Exception as e:
+            
+            except (InvalidOperation, ValidationError) as e:
                 messages.error(request, f"Error updating submission: {str(e)}")
-                return render(request, 'edit_submission.html', {
-                    'submission': submission,
-                    'categories': categories
-                })
-
-        return render(request, 'edit_submission.html', {
-            'submission': submission,
-            'categories': categories
-        })
-
-    except (Customer.DoesNotExist, Developer.DoesNotExist):
+        
+        return render(request, 'edit_submission.html', {'submission': submission})
+    
+    except (Customer.DoesNotExist, AttributeError):
         messages.error(request, "Authorization failed")
         return redirect('home')
+
 
 @login_required
 def delete_submission(request, submission_id):
@@ -1393,16 +1396,18 @@ def download_game(request, game_id):
             # Increment download count
             game.submission.download_count += 1
             game.submission.save(update_fields=['download_count'])
-
+            
+            # Determine the filename to use: original if available, else stored name
+            filename = game.submission.original_filename or os.path.basename(game.submission.game_file.name)
+            
             return FileResponse(
                 game.submission.game_file.open(),
-                filename=os.path.basename(game.submission.game_file.name),
+                filename=filename,
                 as_attachment=True
             )
     except Game.DoesNotExist:
         pass
     return HttpResponse("File not available", status=404)
-
 
 @login_required
 def download_free_games(request):
@@ -1420,7 +1425,9 @@ def download_free_games(request):
             if game.submission and game.submission.game_file:
                 file_path = game.submission.game_file.path
                 if os.path.exists(file_path):
-                    zipf.write(file_path, os.path.basename(file_path))
+                    # Use the original filename if available, else the stored file name
+                    arcname = game.submission.original_filename or os.path.basename(file_path)
+                    zipf.write(file_path, arcname)
                     
                     # Record batch download history
                     DownloadHistory.objects.create(
@@ -1428,7 +1435,7 @@ def download_free_games(request):
                         game=game,
                         download_type='batch'
                     )
-
+                    
                     # Increment download count
                     game.submission.download_count += 1
                     game.submission.save(update_fields=['download_count'])
@@ -1511,16 +1518,6 @@ def update_privacy_policy(request):
 # payments/views.py
 # ======================
 
-import stripe
-import json
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import redirect, render
-from .models import Order, OrderItem, CartItem
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
 @csrf_exempt
 @login_required
 def create_checkout(request):
@@ -1530,7 +1527,7 @@ def create_checkout(request):
             data = json.loads(request.body)
             game_ids = data.get('game_ids', [])
             
-            # Get cart items
+            # Get cart items with optimized query
             items = CartItem.objects.filter(
                 cart=customer.cart,
                 game__id__in=game_ids
@@ -1539,35 +1536,58 @@ def create_checkout(request):
             if not items.exists():
                 return JsonResponse({'error': 'No items in cart'}, status=400)
 
-            # Create order
+            # Calculate prices with discounts
+            line_items = []
+            total_amount = Decimal('0.00')
+            
+            for item in items:
+                # Use sale price if available
+                price = item.game.sale_price if item.game.is_on_sale else item.game.price
+                quantity = item.quantity
+                
+                # Skip items with zero price
+                if price <= 0:
+                    continue
+                
+                # Accumulate total
+                total_amount += price * quantity
+                
+                # Build line items
+                line_items.append({
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {'name': item.game.name},
+                        'unit_amount': int(price * 100),  # Convert to cents
+                    },
+                    'quantity': quantity,
+                })
+
+            if not line_items:
+                return JsonResponse({'error': 'No payable items in cart'}, status=400)
+
+            # Create order with correct pricing
             order = Order.objects.create(
                 customer=customer,
-                total_amount=sum(item.game.price * item.quantity for item in items),
+                total_amount=total_amount,
                 payment_status='pending'
             )
 
-            # Create order items
+            # Create order items with actual charged prices
             for item in items:
+                price = item.game.sale_price if item.game.is_on_sale else item.game.price
                 OrderItem.objects.create(
                     order=order,
                     game=item.game,
                     quantity=item.quantity,
-                    price=item.game.price
+                    price=price
                 )
 
-            # Create Stripe session
+            # Create Stripe session with correct pricing
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {'name': item.game.name},
-                        'unit_amount': int(item.game.price * 100),
-                    },
-                    'quantity': item.quantity,
-                } for item in items],
+                line_items=line_items,
                 mode='payment',
-                success_url = f"{settings.STRIPE_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=f"{settings.STRIPE_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=f"{settings.SITE_URL}/cart",
                 metadata={
                     'order_id': str(order.id),
