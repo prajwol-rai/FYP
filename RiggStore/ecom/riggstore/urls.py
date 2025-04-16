@@ -64,7 +64,6 @@ urlpatterns = [
     path('download-free/', views.download_free_games, name='download_free_games'),
     path('download-purchased/<int:game_id>/', views.download_purchased_game, name='download-purchased'),
 
-
     # Miscellaneous
     path('aboutus/', views.aboutus, name='aboutus'),
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),

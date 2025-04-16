@@ -145,19 +145,19 @@ STRIPE_SECRET_KEY = 'sk_test_51R80bEQ3t66hyN88K80k0nYmsr5KuUgHFK3mW2lxLhrR0TxZnX
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://2aa3-2400-1a00-b050-4227-99e9-6719-7522-ac.ngrok-free.app",
-    "http://2aa3-2400-1a00-b050-4227-99e9-6719-7522-ac.ngrok-free.app"
+    "https://621a-27-34-66-15.ngrok-free.app",
+    "http://621a-27-34-66-15.ngrok-free.app"
 ]
 
 STRIPE_WEBHOOK_SECRET= 'whsec_yUjYdMlYs1Z9rkufeShrn4jDmadT6EDX'
 
 
-SITE_URL = "https://2aa3-2400-1a00-b050-4227-99e9-6719-7522-ac.ngrok-free.app"
+SITE_URL = "https://621a-27-34-66-15.ngrok-free.app"
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CORS_ALLOWED_ORIGINS = [
-    "https://2aa3-2400-1a00-b050-4227-99e9-6719-7522-ac.ngrok-free.app",
+    "https://621a-27-34-66-15.ngrok-free.app",
     "http://localhost:8000"
 ]
 

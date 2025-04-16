@@ -977,51 +977,57 @@ def game_details(request, game_id):
     # Render the game details page with the retrieved game object
     return render(request, 'game_details.html', {'game': game})
 
-def game_list(request):
-    # Retrieve all game objects 
-    games = Game.objects.all().prefetch_related('categories')  
-    categories = Category.objects.all().order_by('name')  # Get all categories ordered by name
+from django.db.models import Case, When, F, DecimalField
 
-    # Search functionality
-    search_query = request.GET.get('q', '')  # Get the search query from GET parameters
+# views.py
+from django.db.models import Case, When, F, DecimalField, Q
+from django.shortcuts import render
+
+def game_list(request):
+    # Determine which template to use
+    template_name = 'game_list.html' if request.path == '/games/' else 'home.html'
+    
+    # Common logic for both pages
+    games = Game.objects.all().prefetch_related('categories')
+    categories = Category.objects.all().order_by('name')
+    
+    # Get filters/sorting from request
+    search_query = request.GET.get('q', '')
+    selected_category_ids = [int(id) for id in request.GET.getlist('category') if id.isdigit()]
+    sort_by = request.GET.get('sort', '')
+
+    # Filtering logic
     if search_query:
-        # Filter games based on name and description containing the search query
-        games = games.filter(
-            Q(name__icontains=search_query) |
-            Q(description__icontains=search_query)
+        games = games.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
+    
+    if selected_category_ids:
+        games = games.filter(categories__id__in=selected_category_ids).distinct()
+
+    # Sorting logic
+    games = games.annotate(
+        current_price=Case(
+            When(is_on_sale=True, then=F('sale_price')),
+            default=F('price'),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
         )
-    
-    # Category filter
-    selected_categories = request.GET.getlist('category')  # Retrieve the selected categories from GET parameters
-    if selected_categories:
-        # Filter games to include only those that belong to the selected categories
-        games = games.filter(categories__name__in=selected_categories).distinct()
-    
-    # Sorting functionality
+    )
     sort_map = {
-        'price_asc': 'sale_price' if games.is_on_sale else 'price',
-        'price_desc': '-sale_price' if games.is_on_sale else '-price',
-        'price_asc': 'price',  # Sort by price ascending
-        'price_desc': '-price',  # Sort by price descending
-        'name_asc': 'name',  # Sort by name ascending
-        'name_desc': '-name'  # Sort by name descending
+        'price_asc': 'current_price',
+        'price_desc': '-current_price',
+        'name_asc': 'name',
+        'name_desc': '-name'
     }
-    sort_by = request.GET.get('sort', '')  # Get sort criteria from GET parameters
     if sort_by in sort_map:
-        # Apply the selected sorting to the queryset
         games = games.order_by(sort_map[sort_by])
-    
-    # Prepare context for rendering the game list page
+
     context = {
-        'games': games,  # The filtered and sorted list of games
-        'categories': categories,  # All available categories for filtering
-        'selected_categories': selected_categories,  # Categories currently selected for filter
-        'current_sort': sort_by,  # Current sorting option
-        'search_query': search_query  # Current search query
+        'games': games,
+        'categories': categories,
+        'selected_category_ids': selected_category_ids,
+        'current_sort': sort_by,
+        'search_query': search_query
     }
-    
-    # Render the game list page with the provided context
-    return render(request, 'game_list.html', context)
+    return render(request, template_name, context)
 
 @login_required
 def developer_dashboard(request):
