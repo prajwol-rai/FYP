@@ -273,8 +273,8 @@
             Selected Total: <span id="selected-total">$0</span>
         </div>
         <div class="checkout-buttons">
-            <button class="checkout-btn payment-btn" id="payment-btn">
-                Pay with Stripe
+            <button class="checkout-btn payment-btn" id="khalti-payment-btn">
+                Pay with Khalti
             </button>
             <button class="checkout-btn download-btn" id="download-btn">
                 Download Selected Games
@@ -288,7 +288,6 @@
     {% endif %}
 </div>
 
-<script src="https://js.stripe.com/v3/"></script>
 <script>
     function getCookie(name) {
         let cookieValue = null;
@@ -304,70 +303,110 @@
         }
         return cookieValue;
     }
-    const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
 
     document.addEventListener('DOMContentLoaded', () => {
+        const cartContainer = document.querySelector('.cart-container');
         const checkboxes = document.querySelectorAll('.game-checkbox');
-        const selectAll = document.querySelector('#select-all');
         const selectedTotal = document.querySelector('#selected-total');
-        const paymentBtn = document.querySelector('#payment-btn');
+        const khaltiPaymentBtn = document.querySelector('#khalti-payment-btn');
         const downloadBtn = document.querySelector('#download-btn');
         const csrftoken = getCookie('csrftoken');
-    
-        // Update selection totals and button states
+        
+        // Initialize payment handlers
+        let isProcessingPayment = false;
+        let currentPaymentRequest = null;
+
+        // Utility functions
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        function showError(message) {
+            const errorEl = document.createElement('div');
+            errorEl.className = 'payment-error';
+            errorEl.innerHTML = `
+                <div class="error-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            cartContainer.prepend(errorEl);
+            setTimeout(() => errorEl.remove(), 5000);
+        }
+
+        function showLoading(state) {
+            const loader = document.querySelector('#payment-loader') || createLoader();
+            loader.style.display = state ? 'flex' : 'none';
+        }
+
+        function createLoader() {
+            const loader = document.createElement('div');
+            loader.id = 'payment-loader';
+            loader.innerHTML = `
+                <div class="loader-spinner"></div>
+                <div class="loader-text">Processing Payment...</div>
+            `;
+            document.body.appendChild(loader);
+            return loader;
+        }
+
+        // Payment calculation and UI updates
         function updateSelection() {
             let total = 0;
-            let freeGamesSelected = false;
-            let paidGamesSelected = false;
+            let freeGames = [];
+            let paidGames = [];
 
             checkboxes.forEach(checkbox => {
                 if (checkbox.checked) {
-                    const price = parseFloat(
-                        checkbox.closest('tr').querySelector('.price-highlight').textContent.replace('$', '')
-                    );
+                    const row = checkbox.closest('.cart-item-row');
+                    const price = parseFloat(row.dataset.price);
                     total += price;
-                    if (price === 0) freeGamesSelected = true;
-                    if (price > 0) paidGamesSelected = true;
+                    
+                    price === 0 ? 
+                        freeGames.push(row) : 
+                        paidGames.push(row);
                 }
             });
 
+            // Update UI
             selectedTotal.textContent = `$${total.toFixed(2)}`;
-            downloadBtn.style.display = freeGamesSelected ? 'inline-block' : 'none';
-            paymentBtn.style.display = paidGamesSelected ? 'inline-block' : 'none';
+            downloadBtn.style.display = freeGames.length ? 'block' : 'none';
+            khaltiPaymentBtn.style.display = paidGames.length ? 'block' : 'none';
         }
 
         // Download handler
-        downloadBtn.addEventListener('click', async () => {
-            const selectedItems = Array.from(document.querySelectorAll('.cart-item-row .game-checkbox:checked'));
-            const freeGames = selectedItems.filter(checkbox => {
-                const row = checkbox.closest('.cart-item-row');
-                return parseFloat(row.dataset.price) === 0 && row.dataset.downloadUrl;
-            });
-
-            if (freeGames.length === 0) {
-                alert('Please select free games to download');
-                return;
-            }
-
-            if (freeGames.length === 1) {
-                const downloadUrl = freeGames[0].closest('.cart-item-row').dataset.downloadUrl;
-                window.location.href = downloadUrl;
-                return;
-            }
-
+        async function handleFreeDownload() {
+            if (isProcessingPayment) return;
+            isProcessingPayment = true;
+            
             try {
+                const selectedItems = Array.from(document.querySelectorAll('.game-checkbox:checked'));
+                const freeGames = selectedItems.filter(checkbox => {
+                    const row = checkbox.closest('.cart-item-row');
+                    return parseFloat(row.dataset.price) === 0 && row.dataset.downloadUrl;
+                });
+
+                if (!freeGames.length) {
+                    showError('Please select free games to download');
+                    return;
+                }
+
                 downloadBtn.disabled = true;
-                downloadBtn.textContent = 'Preparing download...';
-                
+                downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing Download...';
+
+                if (freeGames.length === 1) {
+                    window.location.href = freeGames[0].closest('.cart-item-row').dataset.downloadUrl;
+                    return;
+                }
+
                 const gameIds = freeGames.map(checkbox => 
                     checkbox.closest('.cart-item-row').dataset.gameId
                 );
 
                 const response = await fetch(`/download-free/?game_ids=${gameIds.join(',')}`, {
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'Content-Type': 'application/json',
-                    }
+                    headers: { 'X-CSRFToken': csrftoken }
                 });
 
                 if (response.ok) {
@@ -376,83 +415,114 @@
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = 'free_games.zip';
-                    document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
                 } else {
-                    throw new Error('Download failed');
+                    throw new Error('Failed to prepare download');
                 }
             } catch (error) {
                 console.error('Download error:', error);
-                alert('Error downloading files. Please try again.');
+                showError(error.message || 'Download failed. Please try again.');
             } finally {
                 downloadBtn.disabled = false;
-                downloadBtn.textContent = 'Download Selected Games';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Selected Games';
+                isProcessingPayment = false;
             }
-        });
+        }
 
-        // Stripe payment handler
-        document.getElementById('payment-btn').addEventListener('click', async () => {
-            const paymentBtn = document.getElementById('payment-btn');
+        // Khalti payment handler
+        async function initiateKhaltiPayment() {
+            if (isProcessingPayment) return;
+            isProcessingPayment = true;
+            showLoading(true);
+
             try {
-                paymentBtn.disabled = true;
-                paymentBtn.textContent = 'Processing...';
-
-                // Get selected items
                 const selectedItems = Array.from(document.querySelectorAll('.game-checkbox:checked'));
                 const gameIds = selectedItems.map(checkbox => 
                     checkbox.closest('.cart-item-row').dataset.gameId
                 );
 
-                // Create checkout session
-                const response = await fetch('{% url "create-checkout" %}', {
+                // Abort previous request if exists
+                if (currentPaymentRequest) {
+                    currentPaymentRequest.abort();
+                }
+
+                const controller = new AbortController();
+                currentPaymentRequest = controller;
+
+                const response = await fetch('{% url "khalti-checkout" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
+                        'X-CSRFToken': csrftoken
                     },
-                    body: JSON.stringify({ game_ids: gameIds })
+                    body: JSON.stringify({ 
+                        game_ids: gameIds,
+                        user_agent: navigator.userAgent,
+                        screen_resolution: `${screen.width}x${screen.height}`
+                    }),
+                    signal: controller.signal
                 });
 
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Payment failed');
+                    throw new Error(data.error || 'Payment initialization failed');
                 }
 
-                if (!data.id) {
-                    throw new Error('Missing session ID from server');
+                if (data.payment_url) {
+                    // Store order ID in sessionStorage
+                    sessionStorage.setItem('pendingOrder', JSON.stringify({
+                        gameIds,
+                        timestamp: Date.now()
+                    }));
+                    
+                    window.location.href = data.payment_url;
+                } else {
+                    throw new Error('Invalid response from payment gateway');
                 }
-
-                // Redirect to Stripe Checkout
-                const { error } = await stripe.redirectToCheckout({
-                    sessionId: data.id
-                });
-
-                if (error) throw error;
-
             } catch (error) {
-                console.error('Payment error:', error);
-                alert(`Payment failed: ${error.message}`);
+                if (error.name !== 'AbortError') {
+                    console.error('Payment error:', error);
+                    showError(error.message || 'Payment processing failed. Please try again.');
+                }
             } finally {
-                paymentBtn.disabled = false;
-                paymentBtn.textContent = 'Pay with Stripe';
+                showLoading(false);
+                isProcessingPayment = false;
+                currentPaymentRequest = null;
+            }
+        }
+
+        // Event listeners
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                updateSelection();
+            });
+        });
+
+        downloadBtn.addEventListener('click', handleFreeDownload);
+        khaltiPaymentBtn.addEventListener('click', initiateKhaltiPayment);
+
+        // Handle page visibility changes (tab switching during payment)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const pendingOrder = sessionStorage.getItem('pendingOrder');
+                if (pendingOrder) {
+                    const { timestamp } = JSON.parse(pendingOrder);
+                    // Refresh if payment took longer than 2 minutes
+                    if (Date.now() - timestamp > 120000) {
+                        window.location.reload();
+                    }
+                }
             }
         });
 
-        // Event listeners
-        checkboxes.forEach(checkbox => checkbox.addEventListener('change', updateSelection));
-        selectAll.addEventListener('change', () => {
-            checkboxes.forEach(checkbox => checkbox.checked = selectAll.checked);
-            updateSelection();
-        });
-
-        updateSelection(); // Initial state update
+        // Initial setup
+        updateSelection();
     });
 
-    // Remove item function
-    window.removeCartItem = async (itemId) => {
+    // Cart item removal
+    async function removeCartItem(itemId) {
         try {
             const response = await fetch(`/cart/remove/${itemId}/`, {
                 method: 'POST',
@@ -468,15 +538,15 @@
             if (data.success) {
                 const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
                 if (row) {
-                    row.style.transition = 'opacity 0.3s';
                     row.style.opacity = '0';
                     setTimeout(() => row.remove(), 300);
                 }
             }
         } catch (error) {
             console.error('Error removing item:', error);
+            showError('Failed to remove item. Please try again.');
         }
-    };
+    }
 </script>
 
 {% endblock %}

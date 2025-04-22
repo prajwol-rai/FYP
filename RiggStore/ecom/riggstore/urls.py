@@ -23,6 +23,7 @@ urlpatterns = [
     path('community/<int:community_id>/edit/', views.edit_community, name='edit_community'),
 
     # Posts & Interactions
+    path('toggle-pin/<int:post_id>/', views.toggle_pin, name='toggle_pin'),
     path('post/<int:post_id>/like/', views.like_post, name='like_post'),
     path('post/<int:post_id>/comment/', views.create_comment, name='create_comment'),
     path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
@@ -70,8 +71,8 @@ urlpatterns = [
     path('admin/privacy-policy/update/', views.update_privacy_policy, name='update_privacy_policy'),
 
     #payment
-    path('payment-failed/', views.payment_failed, name='payment-failed'),
-    path('create-checkout/', views.create_checkout, name='create-checkout'),
-    path('payment-success/', views.payment_success, name='payment-success'),
-    path('webhook/', views.stripe_webhook, name='stripe-webhook'),
+    path('khalti-checkout/', views.create_khalti_checkout, name='khalti-checkout'),
+    path('khalti/callback/', views.khalti_callback, name='khalti-callback'),
+    path('payment/success/', views.payment_success, name='payment-success'),
+    path('payment/failed/', views.payment_failed, name='payment-failed'),
 ]

@@ -610,6 +610,7 @@
                         </th>
                         <th>Game</th>
                         <th>Download Date</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -634,6 +635,13 @@
                             </div>
                         </td>
                         <td>{{ download.downloaded_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            {% if download.game.id in purchased_game_ids %}
+                            <a href="{{ download.game.get_download_url }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-download me-2"></i>Download
+                            </a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

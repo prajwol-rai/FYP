@@ -33,15 +33,15 @@
                                 <dd class="col-sm-9">
                                     <div class="price-container">
                                         {% if submission.sale_enabled %}
-                                            <span class="original-price text-muted">Rs. {{ submission.price|floatformat:2 }}</span>
+                                            <span class="original-price text-muted">USD. {{ submission.price|floatformat:2 }}</span>
                                             → 
-                                            <span class="sale-price text-success">Rs. {{ submission.sale_price|floatformat:2 }}</span>
+                                            <span class="sale-price text-success">USD. {{ submission.sale_price|floatformat:2 }}</span>
                                             <br>
                                             <small class="text-muted">
                                                 ({{ submission.sale_type|title }} discount - {{ submission.discount_percentage|floatformat:0 }}%)
                                             </small>
                                         {% else %}
-                                            Rs. {{ submission.price|floatformat:2 }}
+                                            USD. {{ submission.price|floatformat:2 }}
                                         {% endif %}
                                     </div>
                                 </dd>

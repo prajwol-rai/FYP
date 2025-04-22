@@ -29,6 +29,22 @@
         margin: 2rem 0;
     }
 
+    .badge-official {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        background: #2563eb;
+        color: white;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+    }
+
+    .official-highlight {
+        border: 2px solid #2563eb;
+        background-color: #f0f4ff;
+    }
+
     .non-member-view .alert {
         border: none;
         background: #f8f9fa;
@@ -257,7 +273,8 @@
 
     .form-group textarea {
         width: 100%;
-        min-height: 120px;
+        max-height: 100px;
+        min-height: 10px;
         padding: 1.25rem;
         border: 2px solid var(--input-border);
         border-radius: 12px;
@@ -413,9 +430,39 @@
 
     .post-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
+        gap: 1rem;
+        position: relative;
+    }
+
+    .user-avatar {
+        flex-shrink: 0;
+    }
+
+    .profile-pic-sm {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .default-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ccc;
+        color: #fff;
+    }
+
+    .admin-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .user-info {
+        flex-grow: 1;
     }
 
     .user-info {
@@ -473,6 +520,20 @@
         border-top: 1px solid #f1f5f9;
     }
 
+    .pinned-badge {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background-color: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+
+    .pinned-badge i {
+        color: #0dcaf0;
+    }
     .like-btn, .comment-toggle {
         display: flex;
         align-items: center;
@@ -661,6 +722,15 @@
     <div class="community-main">
         <!-- Community Header -->
         <header class="community-header">
+            <div class="community-badge">
+                <div class="community-title-wrapper">
+                    <h1 class="community-title">
+                        {% if community_obj.is_official %}
+                            <span class="badge-official">OFFICIAL COMMUNITY</span>
+                        {% endif %}
+                    </h1>
+                </div>
+            </div>
             <div class="community-actions">
                 {% if user.is_authenticated and user.customer != community_obj.created_by %}
                 <button class="btn btn-{% if user.customer in community_obj.members.all %}danger{% else %}success{% endif %} join-community-btn" 
@@ -737,16 +807,62 @@
                 <article class="post-card card" data-post-id="{{ post.id }}">
                     <!-- Post Header with Delete Button -->
                     <div class="post-header">
-                        <div class="user-info">
-                            <h4>{{ post.author.f_name }}</h4>
-                            <small>{{ post.created_at|timesince }} ago</small>
+                        <!-- Profile Picture -->
+                        <div class="user-avatar">
+                            {% if post.author.image %}
+                            <img src="{{ post.author.image.url }}" class="profile-pic-sm" alt="{{ post.author.f_name }}'s profile picture">
+                            {% else %}
+                            <div class="profile-pic-sm default-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% if user == post.author.user or is_community_creator or is_moderator %}
+                    
+                        <div class="user-info">
+                            <!-- Name and Badge -->
+                            <div class="d-flex align-items-center gap-2">
+                                <h5 class="mb-0">{{ post.author.f_name }}</h5>
+                                {% if post.author in community_obj.admins.all %}
+                                <span class="badge bg-info admin-badge text-white">
+                                    <i class="fas fa-shield-alt me-1"></i>Admin
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Post Time -->
+                            <small class="text-muted">{{ post.created_at|timesince }} ago</small>
+                        </div>
+
+                        {% if post.pinned %}
+                        <div class="pinned-badge">
+                            <i class="fas fa-thumbtack text-info"></i>
+                            <span class="text-muted small">
+                                Pinned by Admin
+                                {% if post.pinned_at %}
+                                    · {{ post.pinned_at|date:"M d, Y H:i" }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+
+                        {% if user.customer in community_obj.admins.all %}
+                        <button class="btn btn-outline-info btn-sm toggle-pin-post" data-post-id="{{ post.id }}">
+                            {% if post.pinned %}
+                                <i class="fas fa-thumbtack text-info"></i> Unpin
+                            {% else %}
+                                <i class="fas fa-thumbtack"></i> Pin
+                            {% endif %}
+                        </button>
+                    {% endif %}
+
+                        <!-- Delete Button -->
+                        {% if user == post.author.user or community_obj.created_by == user.customer or user.customer in community_obj.admins.all %}
                         <button class="btn btn-danger btn-sm delete-post" data-post-id="{{ post.id }}">
                             <i class="fas fa-trash"></i>
                         </button>
                         {% endif %}
                     </div>
+                    
                 
                     <!-- Post Text Content -->
                     {% if post.content %}
@@ -1148,6 +1264,119 @@
             const deleteComment = e.target.closest('.delete-comment');
             if (deleteComment) handleDeletion('comment', deleteComment.dataset.commentId, `{% url 'delete_comment' 0 %}`);
         });
+    });
+
+    
+    document.addEventListener('DOMContentLoaded', function() {
+    // Pin/Unpin Post Functionality
+    document.querySelectorAll('.toggle-pin-post').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const postId = e.currentTarget.dataset.postId;
+            const button = e.currentTarget;
+            
+            try {
+                const response = await fetch(`{% url 'toggle_pin' 0 %}`.replace('0', postId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+                    const header = postElement.querySelector('.post-header');
+
+                    // Update pinned badge
+                    let badge = header.querySelector('.pinned-badge');
+                    if (data.pinned) {
+                        if (!badge) {
+                            badge = document.createElement('div');
+                            badge.className = 'pinned-badge';
+                            badge.innerHTML = `
+                                <i class="fas fa-thumbtack text-info"></i>
+                                <span class="text-muted small">
+                                    Pinned by Admin
+                                    ${data.pinned_at ? `· ${data.pinned_at}` : ''}
+                                </span>
+                            `;
+                            header.appendChild(badge);
+                        }
+                    } else {
+                        if (badge) badge.remove();
+                    }
+
+                    // Update button text
+                    button.innerHTML = data.pinned 
+                        ? '<i class="fas fa-thumbtack text-info"></i> Unpin'
+                        : '<i class="fas fa-thumbtack"></i> Pin';
+
+                    // Move pinned post to top
+                    if (data.pinned) {
+                        postElement.parentNode.prepend(postElement);
+                    }
+                    
+                    showNotification(data.pinned ? 'Post pinned!' : 'Post unpinned');
+                }
+            } catch (error) {
+                console.error('Toggle pin error:', error);
+                showNotification('Error updating pin status: ' + error.message, false);
+            }
+        });
+    });
+
+        // Notification System
+        function showNotification(message, isSuccess = true) {
+            const toast = document.createElement('div');
+            toast.className = `notification-toast ${isSuccess ? 'success' : 'error'}`;
+            toast.innerHTML = `
+                <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('visible');
+                setTimeout(() => {
+                    toast.classList.remove('visible');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }, 10);
+        }
+
+        // CSS for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            .notification-toast {
+                position: fixed;
+                top: 20px;
+                right: -300px;
+                background: #fff;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                transition: right 0.3s ease-in-out;
+                z-index: 1000;
+            }
+            .notification-toast.visible {
+                right: 20px;
+            }
+            .notification-toast.success {
+                border-left: 4px solid #28a745;
+            }
+            .notification-toast.error {
+                border-left: 4px solid #dc3545;
+            }
+            .notification-toast i {
+                font-size: 1.2rem;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 

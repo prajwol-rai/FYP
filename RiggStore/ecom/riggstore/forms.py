@@ -155,24 +155,44 @@ from django.forms.widgets import ClearableFileInput
 class MultiFileInput(ClearableFileInput):
     allow_multiple_selected = True
 
-# Form for uploading a game submission.
+
 class GameUploadForm(forms.ModelForm):
-    # Use the custom widget for screenshots field
+
     screenshots = forms.FileField(
         widget=MultiFileInput(attrs={'multiple': True}),
         required=False
     )
-    
+
+    community_name = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Official Community Name",
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Enter community name (optional)'
+        })
+    )
+
     class Meta:
         model = GameSubmission
         fields = [
             'title', 'description', 'game_file', 'thumbnail', 'trailer', 'version',
             'min_os', 'min_processor', 'min_ram', 'min_gpu', 'min_directx',
-            'rec_os', 'rec_processor', 'rec_ram', 'rec_gpu', 'rec_directx'
+            'rec_os', 'rec_processor', 'rec_ram', 'rec_gpu', 'rec_directx',
+            'community_name',
         ]
-    widgets = {
+        widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
         }
+
+    def save(self, commit=True):
+        community_name = self.cleaned_data.pop('community_name', None)
+        community_description = self.cleaned_data.pop('community_description', None)
+
+        instance = super().save(commit=commit)
+        setattr(instance, '_community_name', community_name)
+        setattr(instance, '_community_description', community_description)
+
+        return instance
     
 class PrivacyPolicyForm(forms.ModelForm):
     class Meta:

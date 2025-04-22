@@ -122,8 +122,10 @@ class Game(models.Model):
 
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
-    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True)
     purchase_order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    khalti_pidx = models.CharField(max_length=100, blank=True, null=True)
+    khalti_transaction_id = models.CharField(max_length=100, blank=True, null=True)
+
     payment_status = models.CharField(
         max_length=20,
         choices=[
@@ -141,8 +143,8 @@ class Order(models.Model):
         if self.payment_status == 'completed' and not self.commissions.exists():
             Commission.objects.create(
                 order=self,
-                platform_fee=self.total_amount * Decimal('0.30'),  # Use Decimal
-                developer_payout=self.total_amount * Decimal('0.70')  # Use Decimal
+                platform_fee=self.total_amount * Decimal('0.30'),  
+                developer_payout=self.total_amount * Decimal('0.70')  
             )
         super().save(*args, **kwargs)
     
@@ -195,6 +197,13 @@ class Community(models.Model):
     created_by = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='created_communities')
     admins = models.ManyToManyField(Customer, related_name='administered_communities', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    game = models.OneToOneField(
+        Game, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='official_community'
+    )
 
     class Meta:
         verbose_name_plural = 'communities'
@@ -222,6 +231,15 @@ class Post(models.Model):
     image = models.ImageField(upload_to='post_images/', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField(Customer, related_name='liked_posts', blank=True)
+    pinned = models.BooleanField(default=False)
+    pinned_by = models.ForeignKey(
+        Customer, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='pinned_posts'
+    )
+    pinned_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f'Post by {self.author} in {self.community}'
@@ -247,7 +265,9 @@ class GameSubmission(models.Model):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     )
-
+    community_name = models.CharField(max_length=100, blank=True, null=True)
+    community_description = models.TextField(blank=True, null=True)
+    
     developer = models.ForeignKey('Developer', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     categories = models.ManyToManyField(Category)
@@ -259,7 +279,7 @@ class GameSubmission(models.Model):
     trailer = models.FileField(upload_to='uploads/trailers/', null=True, blank=True)
 
     version = models.CharField(max_length=20)
-    
+
     min_os = models.CharField(max_length=50)
     min_processor = models.CharField(max_length=50)
     min_ram = models.CharField(max_length=50)
@@ -323,7 +343,7 @@ class GameScreenshot(models.Model):
     game_submission = models.ForeignKey(
         GameSubmission, 
         on_delete=models.CASCADE,
-        null=True,  # Allows existing records to be updated
+        null=True,  
         blank=True  
         
     )

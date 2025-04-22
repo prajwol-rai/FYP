@@ -145,22 +145,27 @@ STRIPE_SECRET_KEY = 'sk_test_51R80bEQ3t66hyN88K80k0nYmsr5KuUgHFK3mW2lxLhrR0TxZnX
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://621a-27-34-66-15.ngrok-free.app",
-    "http://621a-27-34-66-15.ngrok-free.app"
+    "https://c8ae-103-41-173-36.ngrok-free.app",
+    "http://c8ae-103-41-173-36.ngrok-free.app"
 ]
 
 STRIPE_WEBHOOK_SECRET= 'whsec_yUjYdMlYs1Z9rkufeShrn4jDmadT6EDX'
 
 
-SITE_URL = "https://621a-27-34-66-15.ngrok-free.app"
+SITE_URL = "https://c8ae-103-41-173-36.ngrok-free.app"
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CORS_ALLOWED_ORIGINS = [
-    "https://621a-27-34-66-15.ngrok-free.app",
-    "http://localhost:8000"
+    "https://c8ae-103-41-173-36.ngrok-free.app",
+    "http://c8ae-103-41-173-36.ngrok-free.app"
 ]
 
 
 STRIPE_SUCCESS_URL = f"{SITE_URL}/payment-success/"
 STRIPE_CANCEL_URL = f"{SITE_URL}/cart/"
+
+
+
+KHALTI_SECRET_KEY = '3e2fd15e6d074033a23de0f715ea26fd' 
+SITE_URL = "http://127.0.0.1:8000"

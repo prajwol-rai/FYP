@@ -1,5 +1,15 @@
 from decimal import Decimal, InvalidOperation
 import io
+import random
+import re
+from urllib import request
+from venv import logger
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render, redirect, get_object_or_404
+import requests
+from .forms import PrivacyPolicyForm
+from itertools import chain
 import time
 import traceback
 import uuid
@@ -34,7 +44,7 @@ from .forms import (
     CustomPasswordChangeForm, SignUpForm, UserEditForm, CommunityForm,
     PostForm, 
 )
-import stripe
+
 import json
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -42,7 +52,6 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render
 from .models import Order, OrderItem, CartItem
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
 # ======================
 # Authentication Views
 # ======================
@@ -296,39 +305,40 @@ def logout_user(request):
 
 @login_required
 def community(request):
-    # Initialize an empty list for joined communities
     joined_communities = []
-    # Fetch all communities, ordered by creation date
-    discover_communities = Community.objects.all().order_by('-created_at')
-    
-    # Check if the user is authenticated
+    discover_communities = Community.objects.filter(is_public=True).select_related('game').order_by('-created_at')
+
     if request.user.is_authenticated:
-        # Get or create a Customer instance for the logged-in user
-        customer, created = Customer.objects.get_or_create(
-            user=request.user,
-            defaults={
-                'f_name': request.user.first_name,
-                'l_name': request.user.last_name,
-                'email': request.user.email,
-            }
-        )
-        
-        # Retrieve communities that the customer has joined, ordered by creation date
-        joined_communities = customer.joined_communities.all().order_by('-created_at')
-        # Fetch communities that the customer has not joined
-        discover_communities = Community.objects.exclude(
-            id__in=joined_communities.values_list('id', flat=True)
-        ).order_by('-created_at')
-    
-    # Prepare context for rendering the community page
+        customer = request.user.customer
+        joined_communities = customer.joined_communities.select_related('game').order_by('-created_at')
+        discover_communities = discover_communities.exclude(id__in=joined_communities.values_list('id', flat=True))
+
+    # Set official status for all communities
+    for community in chain(joined_communities, discover_communities):
+        community.is_official = community.game is not None
+
     context = {
-        'joined_communities': joined_communities,
-        'discover_communities': discover_communities,
-        'community_form': CommunityForm()  # Instance of the community form for creating a new community
+        'joined_communities': sorted(joined_communities, key=lambda c: not c.is_official),
+        'discover_communities': sorted(discover_communities, key=lambda c: not c.is_official),
+        'community_form': CommunityForm()
     }
-    # Render the community page with the provided context
     return render(request, 'community.html', context)
 
+
+@receiver(post_save, sender=Game)
+def create_official_community(sender, instance, **kwargs):
+    print(f"Signal triggered for Game: {instance.name} (Approved: {instance.approved})")
+    if instance.approved and not hasattr(instance, 'official_community'):
+        print("Creating official community...")
+        community = Community.objects.create(
+            name=instance.name,
+            game=instance,
+            created_by=instance.developer.user,
+            is_public=True
+        )
+        community.admins.add(instance.developer.user)
+        community.members.add(instance.developer.user)
+        print(f"Created community: {community}")
 
 @login_required
 @require_POST  # Ensure this view only handles POST requests
@@ -360,6 +370,23 @@ def create_community(request):
             'success': False,
             'errors': {'__all__': [str(e)]}
         }, status=500)
+    
+
+def community_list(request):
+    # Get base querysets
+    joined = list(getattr(request.user.customer, 'joined_communities', []))
+    discover = Community.objects.filter(is_public=True).exclude(id__in=[c.id for c in joined])
+    
+    # Mark official communities
+    for community in joined + list(discover):
+        community.is_official = hasattr(community, 'game')
+    
+    # Sort with official first
+    context = {
+        'joined_communities': sorted(joined, key=lambda c: not c.is_official),
+        'discover_communities': sorted(discover, key=lambda c: not c.is_official),
+    }
+    return render(request, 'community/list.html', context)
 
 
 @login_required
@@ -388,27 +415,67 @@ def edit_community(request, community_id):
 # Render the details of a specific community and its posts.
 def community_detail(request, community_id):
     community_obj = get_object_or_404(Community, id=community_id)
+    community_obj.is_official = community_obj.game is not None 
     is_member = False
-    
+    is_community_creator = False
+
     if request.user.is_authenticated:
-        is_member = community_obj.members.filter(id=request.user.customer.id).exists()
-    
-    # Only get posts if user is member or creator
+        user_customer = request.user.customer
+        is_member = community_obj.members.filter(id=user_customer.id).exists()
+        is_community_creator = user_customer == community_obj.created_by
+    else:
+        user_customer = None
+
     posts = Post.objects.none()
-    if is_member or request.user.customer == community_obj.created_by:
-        posts = Post.objects.filter(community=community_obj).order_by('-created_at')
-    
+    if is_member or is_community_creator:
+        # Order by pinned first, then by created_at (most recent)
+        posts = Post.objects.filter(community=community_obj).order_by('-pinned', '-created_at')
+
     context = {
         'community_obj': community_obj,
         'posts': posts,
         'other_communities': Community.objects.exclude(id=community_obj.id).order_by('-created_at')[:5],
         'post_form': PostForm(),
         'is_member': is_member,
-        'is_community_creator': request.user.is_authenticated and 
-                               request.user.customer == community_obj.created_by
+        'is_community_creator': is_community_creator,
     }
     return render(request, 'community_detail.html', context)
 
+
+@login_required
+@require_POST
+def toggle_pin(request, post_id):
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        community = post.community
+        user = request.user.customer
+
+        if user != community.created_by and user not in community.admins.all():
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+
+        if post.pinned:
+            # Unpin the post
+            post.pinned = False
+            post.pinned_by = None
+            post.pinned_at = None
+        else:
+            # Pin the post
+            post.pinned = True
+            post.pinned_by = user
+            post.pinned_at = time.timezone.now()
+            
+        post.save()
+        return JsonResponse({
+            'success': True,
+            'pinned': post.pinned,
+            'pinned_by': post.pinned_by.f_name if post.pinned_by else '',
+            'pinned_at': post.pinned_at.strftime("%b %d, %Y %H:%M") if post.pinned_at else ''
+        })
+
+    except Exception as e:
+        logger.error(f"Pin toggle error: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+    
 @login_required
 @require_POST  # Ensure this view only handles POST requests
 def join_community(request, community_id):
@@ -747,13 +814,22 @@ def delete_comment(request, comment_id):
 @login_required
 def account(request):
     customer = request.user.customer
+    
+    # Get download history
     download_history = DownloadHistory.objects.filter(
         user=customer, 
         visible=True
     ).select_related('game').order_by('-downloaded_at')[:20]
     
+    # Get IDs of games the user has purchased
+    purchased_game_ids = OrderItem.objects.filter(
+        order__customer=customer,
+        order__payment_status='completed'
+    ).values_list('game__id', flat=True).distinct()
+    
     context = {
         'download_history': download_history,
+        'purchased_game_ids': set(purchased_game_ids),
     }
     return render(request, 'account.html', context)
 
@@ -794,20 +870,80 @@ def verify_password(request):
     # Return JSON response indicating if the password is valid
     return JsonResponse({'valid': user is not None})
 
-# Allow the user to change their password.
-@login_required
+
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
+from django.utils import timezone
+from django.contrib.auth.password_validation import validate_password
+
 def change_password(request):
     if request.method == 'POST':
-        # Bind the custom password change form with the current user and posted data
-        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
-        if form.is_valid():  # Validate the form data
-            form.save()  # Save the new password
-            update_session_auth_hash(request, form.user)  # Update session to prevent logout
-            messages.success(request, 'Password changed successfully')  # Success message
-            return redirect('account')  # Redirect to the account page
-    
-    # Render the change password page with the form
-    return render(request, 'change_password.html', {'form': CustomPasswordChangeForm(user=request.user)})
+        # Step 1: Verify old password and send OTP
+        if 'old_password' in request.POST:
+            # Manual password validation
+            old_password = request.POST.get('old_password')
+            user = request.user
+            
+            if not user.check_password(old_password):
+                return JsonResponse({'errors': {'old_password': ['Incorrect current password']}}, status=400)
+
+            # Generate and store OTP
+            otp = str(random.randint(100000, 999999))
+            request.session['password_data'] = {
+                'otp': otp,
+                'otp_created': timezone.now().isoformat(),
+                'user_id': user.id
+            }
+            
+            # Send OTP email
+            send_mail(
+                'Password Change Verification',
+                f'Your OTP is: {otp}',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+            return JsonResponse({'status': 'otp_sent'})
+
+        # Step 2: Verify OTP and set new password
+        elif 'otp' in request.POST:
+            session_data = request.session.get('password_data', {})
+            
+            # Validate session data
+            if not session_data or session_data.get('user_id') != request.user.id:
+                return JsonResponse({'error': 'Invalid session'}, status=400)
+
+            # Check OTP expiration (15 minutes)
+            otp_time = timezone.datetime.fromisoformat(session_data['otp_created'])
+            if (timezone.now() - otp_time).total_seconds() > 900:
+                return JsonResponse({'error': 'OTP expired'}, status=400)
+
+            # Verify OTP match
+            if request.POST['otp'] != session_data['otp']:
+                return JsonResponse({'error': 'Invalid OTP'}, status=400)
+
+            # Validate new passwords
+            new_password1 = request.POST.get('new_password1')
+            new_password2 = request.POST.get('new_password2')
+            
+            if new_password1 != new_password2:
+                return JsonResponse({'error': 'Passwords do not match'}, status=400)
+
+            try:
+                validate_password(new_password1, user=request.user)
+            except ValidationError as e:
+                return JsonResponse({'error': e.messages}, status=400)
+
+            # Update password
+            request.user.set_password(new_password1)
+            request.user.save()
+            update_session_auth_hash(request, request.user)
+            
+            # Clear session data
+            del request.session['password_data']
+            
+            return JsonResponse({'status': 'success'})
+
+    return render(request, 'change_password.html')
 
 # Upload a new profile image for the user.
 @login_required
@@ -916,6 +1052,10 @@ def admin_dashboard(request):
     }
     # Render the admin dashboard template with the provided context
     return render(request, 'admin.html', context)
+
+
+
+
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)  # Ensure that only staff can access this view
@@ -1120,6 +1260,8 @@ def upload_game(request):
                     game_file=request.FILES['game_file'],
                     thumbnail=request.FILES['thumbnail'],
                     trailer=request.FILES.get('trailer'),
+                    community_name=form_data.get('community_name', '').strip(),
+                    community_description='',
                 )
                 submission.save()
 
@@ -1195,80 +1337,137 @@ def review_submissions(request):
     return render(request, 'admin/review_submissions.html', {'submissions': submissions})
     
     
+# views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.db import transaction
+from decimal import Decimal, InvalidOperation
+
+from .models import (
+    GameSubmission,
+    Game,
+    Community,
+)
+# (import Category or other models here if your templates need them)
+
+
 @login_required
-@user_passes_test(lambda u: u.is_staff)  # Ensure only staff can access this view
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def review_submissions(request):
+    """
+    List all pending game submissions for staff to review.
+    """
+    submissions = (
+        GameSubmission.objects
+        .filter(status='pending')
+        .prefetch_related('categories')
+    )
+    return render(request, 'admin/review_submissions.html', {
+        'submissions': submissions,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+@transaction.atomic
 def review_submission(request, submission_id):
-    # Retrieve the submission along with related developer and categories, optimize with select and prefetch
+    """
+    Review (approve/reject) a single submission.
+    On approval, publish a Game and create its Community.
+    """
     submission = get_object_or_404(
-        GameSubmission.objects.select_related('developer__user')
-                              .prefetch_related('categories', 'gamescreenshot_set'),
-        id=submission_id  # Get the submission by its ID
+        GameSubmission.objects
+            .select_related('developer__user')
+            .prefetch_related('categories', 'gamescreenshot_set'),
+        id=submission_id
     )
 
-    if request.method == 'POST':  # Check for POST request for form submission
-        confirmed = request.POST.get('confirmed', 'false')  # Check if the action is confirmed
-        if confirmed != 'true':
-            messages.error(request, "Action not confirmed.")  # Error message if not confirmed
-            return redirect('review_submission', submission_id=submission_id)  # Redirect to review page
+    if request.method == 'POST':
+        # Must confirm action in the form
+        if request.POST.get('confirmed') != 'true':
+            messages.error(request, "Action not confirmed.")
+            return redirect('review_submission', submission_id=submission_id)
 
-        action = request.POST.get('action')  # Get the action to perform (approve/reject)
-        notes = request.POST.get('notes', '')  # Get any admin notes provided
-        # Also get developer notes from the form (if provided)
+        action = request.POST.get('action')
+        notes = request.POST.get('notes', '')
         dev_notes = request.POST.get('developer_notes', '')
 
         try:
             if action == 'approve':
-                # Check if the submission is still pending
                 if submission.status != 'pending':
                     messages.error(request, "Only pending submissions can be approved.")
                     return redirect('review_submission', submission_id=submission_id)
 
-                # Create or update the game associated with the submission
+                # Create or update the Game record
                 game, created = Game.objects.update_or_create(
                     submission=submission,
                     defaults={
-                        'name': submission.title,
+                        'name':        submission.title,
                         'description': submission.description,
-                        'developer': submission.developer,
-                        'price': submission.price,
-                        'image': submission.thumbnail,
-                        'approved': True,
-                        'sale_price': submission.price * (1 - submission.discount_percentage/100),
-                        'is_on_sale': submission.sale_enabled
+                        'developer':   submission.developer,
+                        'price':       submission.price,
+                        'image':       submission.thumbnail,
+                        'approved':    True,
+                        'sale_price':  submission.price * (1 - submission.discount_percentage / 100),
+                        'is_on_sale':  submission.sale_enabled,
                     }
                 )
+                game.categories.set(submission.categories.all())
 
-                game.categories.set(submission.categories.all())  # Associate categories with the game
-                submission.status = 'approved'  # Update submission status
-                messages.success(request, 'Game approved and published!')  # Success message
+                # Mark submission approved
+                submission.status = 'approved'
+                messages.success(request, 'Game approved and published!')
 
+                community_title = (
+                    submission.community_name.strip()
+                    if submission.community_name else
+                    game.name
+                )
+
+                # Only create if it doesn't already exist
+                if not hasattr(game, 'official_community'):
+                    comm = Community.objects.create(
+                        name=community_title,
+                        description='',                    
+                        created_by=submission.developer.user,
+                        game=game,
+                        is_public=True,
+                    )
+                 
+                    comm.admins.add(submission.developer.user)
+                    comm.members.add(submission.developer.user)
+              
             elif action == 'reject':
-                # Check if the submission is still pending
                 if submission.status != 'pending':
                     messages.error(request, "Only pending submissions can be rejected.")
                     return redirect('review_submission', submission_id=submission_id)
 
-                # Update submission status to rejected
                 submission.status = 'rejected'
-                messages.warning(request, 'Submission rejected.')  # Warning message
+                messages.warning(request, 'Submission rejected.')
 
-            # Update admin notes and also update developer notes (if any)
-            submission.admin_notes = notes  
-            submission.developer_notes = dev_notes  
-            submission.save()  # Save the submission with updated status and notes
+            else:
+                messages.error(request, "Unknown action.")
+                return redirect('review_submission', submission_id=submission_id)
 
-            return redirect('review_submissions')  # Redirect to the list of submissions
+            # Save admin & developer notes and final submission state
+            submission.admin_notes = notes
+            submission.developer_notes = dev_notes
+            submission.save()
+
+            return redirect('review_submissions')
 
         except Exception as e:
-            # Handle any other exceptions that occur during the process
-            messages.error(request, f'Error: {str(e)}')  # Error message
-            return redirect('review_submissions')  # Redirect to the list of submissions
+            messages.error(request, f'Error during review: {e}')
+            return redirect('review_submissions')
 
-    # For GET requests, render the review submission page with submission data and categories
+    # GET: show the review form
     return render(request, 'admin/review_submission.html', {
-        'submission': submission,  # Pass the submission object to the template
-        'categories': submission.categories.all()  # Pass the categories associated with the submission
+        'submission': submission,
+        'categories': submission.categories.all(),
     })
+
 
 
 def edit_submission(request, submission_id):
@@ -1366,15 +1565,19 @@ def add_to_cart(request, game_id):
     
     cart, created = Cart.objects.get_or_create(customer=customer)
     
-    if CartItem.objects.filter(cart=cart, game=game).exists():
-        messages.warning(request, f'"{game.name}" is already in your cart!')
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        game=game,
+        defaults={'quantity': 1}
+    )
+    
+    if not created:
+        cart_item.quantity += 1
+        cart_item.save()
+        messages.info(request, f'"{game.name}" quantity updated in cart!')
     else:
-        CartItem.objects.create(cart=cart, game=game)
         messages.success(request, f'"{game.name}" added to cart successfully!')
     
-    cache.delete(f'cart_count_{request.user.id}')
-    
-    # Changed 'game_detail' to 'game_details' and added correct parameter
     return redirect(request.META.get('HTTP_REFERER', reverse('game_details', kwargs={'game_id': game.id})))
 
 @receiver([post_save, post_delete], sender=CartItem)
@@ -1489,10 +1692,6 @@ def remove_from_cart(request, item_id):
 def aboutus(request):
     return render(request, 'aboutus.html', {})
 
-from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render, redirect, get_object_or_404
-from .forms import PrivacyPolicyForm
 
 def privacy_policy(request):
     policy = PrivacyPolicy.get_latest_policy()
@@ -1520,220 +1719,203 @@ def update_privacy_policy(request):
     })
 
 
-# ======================
-# payments/views.py
-# ======================
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+import json
+import requests
+import logging
 
-@csrf_exempt
+logger = logging.getLogger(__name__)
+
 @login_required
-def create_checkout(request):
+def create_khalti_checkout(request):
     if request.method == 'POST':
         try:
             customer = request.user.customer
             data = json.loads(request.body)
             game_ids = data.get('game_ids', [])
             
-            # Get cart items with optimized query
+            # Get cart items with quantity validation
             items = CartItem.objects.filter(
                 cart=customer.cart,
                 game__id__in=game_ids
             ).select_related('game')
-
+            
             if not items.exists():
                 return JsonResponse({'error': 'No items in cart'}, status=400)
 
-            # Calculate prices with discounts
-            line_items = []
-            total_amount = Decimal('0.00')
-            
-            for item in items:
-                # Use sale price if available
-                price = item.game.sale_price if item.game.is_on_sale else item.game.price
-                quantity = item.quantity
-                
-                # Skip items with zero price
-                if price <= 0:
-                    continue
-                
-                # Accumulate total
-                total_amount += price * quantity
-                
-                # Build line items
-                line_items.append({
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {'name': item.game.name},
-                        'unit_amount': int(price * 100),  # Convert to cents
-                    },
-                    'quantity': quantity,
-                })
+            # Calculate total amounts
+            total_decimal = sum(
+                (item.game.sale_price if item.game.is_on_sale else item.game.price) * item.quantity
+                for item in items
+            )
+            total_paisa = int(total_decimal * 100)  # Convert to paisa for Khalti
 
-            if not line_items:
-                return JsonResponse({'error': 'No payable items in cart'}, status=400)
+            if total_paisa < 1000:  # Khalti minimum amount (10 NPR)
+                return JsonResponse({'error': 'Minimum payment amount is NPR 10'}, status=400)
 
-            # Create order with correct pricing
+            # Create order record
             order = Order.objects.create(
                 customer=customer,
-                total_amount=total_amount,
+                total_amount=total_decimal,
                 payment_status='pending'
             )
 
-            # Create order items with actual charged prices
-            for item in items:
-                price = item.game.sale_price if item.game.is_on_sale else item.game.price
-                OrderItem.objects.create(
+            # Create order items with quantities
+            order_items = [
+                OrderItem(
                     order=order,
                     game=item.game,
                     quantity=item.quantity,
-                    price=price
-                )
+                    price=item.game.sale_price if item.game.is_on_sale else item.game.price
+                ) for item in items
+            ]
+            OrderItem.objects.bulk_create(order_items)
+            
+            # Add games to M2M relationship
+            order.games.add(*[item.game for item in items])
 
-            # Create Stripe session with correct pricing
-            session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=line_items,
-                mode='payment',
-                success_url=f"{settings.STRIPE_SUCCESS_URL}?session_id={{CHECKOUT_SESSION_ID}}",
-                cancel_url=f"{settings.SITE_URL}/cart",
-                metadata={
-                    'order_id': str(order.id),
-                    'user_id': str(request.user.id),
-                    'game_ids': json.dumps([item.game.id for item in items])
-                }
+            # Initiate Khalti payment
+            return_url = f"{settings.SITE_URL}/khalti/callback/"
+            response = initiate_khalti_payment(
+                order_id=order.id,
+                amount=total_paisa,
+                return_url=return_url
             )
-            return JsonResponse({'id': session.id})
-        
+
+            if 'pidx' in response:
+                order.khalti_pidx = response['pidx']
+                order.save()
+                return JsonResponse({'payment_url': response['payment_url']})
+
+            logger.error(f'Khalti initiation failed: {response}')
+            return JsonResponse({
+                'error': 'Payment initialization failed',
+                'detail': response.get('detail', 'Unknown error')
+            }, status=400)
+
         except Exception as e:
+            logger.exception("Payment processing error")
             return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-# ======================
-# Payment Success View
-# ======================
+def initiate_khalti_payment(order_id, amount, return_url):
+    """Handle Khalti payment initiation"""
+    url = "https://a.khalti.com/api/v2/epayment/initiate/"
+    headers = {
+        "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "return_url": return_url,
+        "website_url": settings.SITE_URL,
+        "amount": amount,
+        "purchase_order_id": str(order_id),
+        "purchase_order_name": f"GamePurchase_{order_id}",
+    }
 
-@login_required
-def payment_success(request):
     try:
-        session_id = request.GET.get('session_id')
-        if not session_id:
-            return redirect('payment-failed')
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Khalti API Error: {str(e)}")
+        return {'error': 'Payment gateway communication failed'}
 
-        # Retrieve and validate Stripe session
-        session = stripe.checkout.Session.retrieve(
-            session_id,
-            expand=['payment_intent', 'line_items']
-        )
+@csrf_exempt
+def khalti_callback(request):
+    """Handle Khalti payment callback"""
+    pidx = request.GET.get('pidx')
+    if not pidx:
+        return redirect('payment-failed')
+
+    try:
+        # Verify payment with Khalti API
+        verify_url = "https://a.khalti.com/api/v2/epayment/lookup/"
+        headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}"}
+        response = requests.post(verify_url, json={"pidx": pidx}, headers=headers)
+        response.raise_for_status()
+        response_data = response.json()
+
+        order = Order.objects.get(khalti_pidx=pidx)
         
-        # Verify payment succeeded
-        if session.payment_status != 'paid':
-            return redirect('payment-failed')
+        if response_data.get('status') == 'Completed':
+            # Validate amount match
+            if (order.total_amount * 100) != response_data.get('total_amount', 0):
+                logger.error(f"Amount mismatch for order {order.id}")
+                order.payment_status = 'failed'
+                order.save()
+                return redirect('payment-failed')
 
-        # Validate metadata exists
-        required_metadata = ['order_id', 'user_id', 'game_ids']
-        if not all(key in session.metadata for key in required_metadata):
-            return redirect('payment-failed')
-
-        # Verify user match
-        if str(session.metadata['user_id']) != str(request.user.id):
-            return redirect('payment-failed')
-
-        # Get and update order
-        order = Order.objects.get(
-            id=session.metadata['order_id'],
-            customer=request.user.customer
-        )
-        
-        if order.payment_status != 'completed':
+            # Update order status
             order.payment_status = 'completed'
-            order.total_amount = Decimal(session.amount_total) / 100
-            order.stripe_payment_intent_id = session.payment_intent.id
+            order.khalti_transaction_id = response_data.get('transaction_id')
             order.save()
 
-            # Remove purchased games from cart
-            try:
-                game_ids = json.loads(session.metadata['game_ids'])
-                CartItem.objects.filter(
-                    cart=request.user.customer.cart,
-                    game__id__in=game_ids
-                ).delete()
-                print(f"Removed {len(game_ids)} items from cart")
-            except Exception as e:
-                print(f"Cart cleanup error: {str(e)}")
+            # Clear purchased cart items
+            CartItem.objects.filter(
+                cart=order.customer.cart,
+                game__in=order.games.all()
+            ).delete()
 
+            return redirect('payment-success')
+
+        # Handle failed statuses
+        order.payment_status = 'failed'
+        order.failure_reason = response_data.get('status', 'Unknown')
+        order.save()
+        return redirect('payment-failed')
+
+    except Order.DoesNotExist:
+        logger.error(f"Order not found for pidx: {pidx}")
+        return redirect('payment-failed')
+    except Exception as e:
+        logger.exception("Callback processing error")
+        return redirect('payment-failed')
+
+# ======================
+# Payment Status Views
+# ======================
+def payment_success(request):
+    try:
+        order = Order.objects.filter(
+            customer=request.user.customer,
+            payment_status='completed'
+        ).prefetch_related('games').latest('created_at')
+        
         return render(request, 'payments/success.html', {
             'order': order,
             'games': order.games.all()
         })
-
-    except Exception as e:
-        print(f"Payment success error: {str(e)}")
+    except Order.DoesNotExist:
         return redirect('payment-failed')
-
-# ======================
-# Stripe Webhook Handler
-# ======================
-@csrf_exempt
-def stripe_webhook(request):
-    payload = request.body
-    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, 
-            sig_header, 
-            settings.STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError as e:
-        return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError as e:
-        return HttpResponse(status=400)
-
-    if event.type == 'checkout.session.completed':
-        session = event.data.object
-        
-        try:
-            # Validate metadata exists
-            if not all(key in session.metadata for key in ['order_id', 'user_id', 'game_ids']):
-                return HttpResponse(status=400)
-
-            order = Order.objects.get(id=session.metadata['order_id'])
-            
-            if order.payment_status != 'completed':
-                order.payment_status = 'completed'
-                order.total_amount = Decimal(session.amount_total) / 100
-                order.stripe_payment_intent_id = session.payment_intent
-                order.save()
-
-            return HttpResponse(status=200)
-            
-        except Order.DoesNotExist:
-            return HttpResponse(status=404)
-        except Exception as e:
-            return HttpResponse(status=400)
-
-    return HttpResponse(status=200)
 
 def payment_failed(request):
     return render(request, 'payments/failed.html')
 
-
+# ======================
+# Download Management
+# ======================
 
 @login_required
 def download_purchased_game(request, game_id):
     try:
-        game = Game.objects.get(id=game_id)
         customer = request.user.customer
+        game = get_object_or_404(Game, id=game_id)
         
-        # Verify game was purchased
-        purchased = OrderItem.objects.filter(
-            order__customer=customer,
-            order__payment_status='completed',
-            game=game
+        # Verify purchase through both OrderItems and M2M relationship
+        purchased = Order.objects.filter(
+            customer=customer,
+            payment_status='completed',
+            games=game
         ).exists()
 
         if not purchased:
-            return HttpResponse("You don't own this game", status=403)
+            return HttpResponse("You don't own this game or payment wasn't completed", status=403)
+
+        # Check file availability
+        if not game.submission or not game.submission.game_file:
+            logger.error(f"Game file missing for {game.name} (ID: {game_id})")
+            return HttpResponse("Game file not available", status=404)
 
         # Record download history
         DownloadHistory.objects.create(
@@ -1742,13 +1924,23 @@ def download_purchased_game(request, game_id):
             download_type='single'
         )
 
-        # Serve the file
-        if game.submission and game.submission.game_file:
-            game.submission.download_count += 1
-            game.submission.save()
-            return FileResponse(game.submission.game_file.open(), filename=game.submission.game_file.name)
+        # Update download count
+        game.submission.download_count += 1
+        game.submission.save()
 
-        return HttpResponse("File not available", status=404)
+        # Serve the file with proper headers
+        response = FileResponse(
+            game.submission.game_file.open(),
+            filename=game.submission.original_filename or game.submission.game_file.name,
+            as_attachment=True
+        )
+        
+        # Add security headers
+        response['Content-Security-Policy'] = "default-src 'self'"
+        response['X-Content-Type-Options'] = "nosniff"
+        
+        return response
 
-    except Game.DoesNotExist:
-        return HttpResponse("Game not found", status=404)
+    except Exception as e:
+        logger.error(f"Download error: {str(e)}", exc_info=True)
+        return HttpResponse("Error downloading file", status=500)
