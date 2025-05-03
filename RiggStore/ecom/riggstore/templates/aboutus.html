@@ -4,172 +4,288 @@
 
 <style>
     :root {
-        --primary-color: #1a365d;
-        --secondary-color: #2c5282;
-        --text-color: #2d3748;
-        --background-color: #ffffff;
-        --border-color: #e2e8f0;
-        --transition: all 0.2s ease;
+        --primary-gradient: linear-gradient(135deg, #6e45e2 0%, #88d3ce 100%);
+        --secondary-gradient: linear-gradient(90deg, #2b2d42 0%, #4a4e69 100%);
+        --text-dark: #2b2d42;
+        --text-medium: #4a4e69;
+        --text-light: #6c757d;
     }
-
-    /* Base Reset */
-    .legal-container * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    /* Typography */
+    
+    /* Base Styles */
     .legal-container {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
-        line-height: 1.6;
-        color: var(--text-color);
         max-width: 1200px;
         margin: 0 auto;
-        padding: 2rem 1rem;
+        padding: 4rem 1.5rem;
+        color: var(--text-medium);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.65;
     }
-
-    h1, h2, h3 {
-        color: var(--primary-color);
+    
+    .page-header {
+        margin-bottom: 4rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        padding: 3rem 0;
+    }
+    
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 150%;
+        height: 150%;
+        background: var(--primary-gradient);
+        opacity: 0.03;
+        z-index: -1;
+        border-radius: 50%;
+        filter: blur(80px);
+    }
+    
+    .page-title {
+        font-size: 3rem;
+        font-weight: 800;
         margin-bottom: 1rem;
+        background: var(--secondary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
     }
-
-    h1 { font-size: 2.5rem; }
-    h2 { font-size: 2rem; margin-top: 2rem; }
-    h3 { font-size: 1.5rem; }
-
+    
+    .page-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-light);
+        font-weight: 400;
+        max-width: 700px;
+        margin: 0 auto;
+        opacity: 0.9;
+    }
+    
     /* Content Sections */
     .content-section {
-        margin: 2rem 0;
-        padding: 2rem;
-        background: var(--background-color);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
+        margin: 4rem 0;
     }
-
-    /* Value Propositions */
-    .value-grid {
+    
+    .row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 2rem;
-        margin: 2rem 0;
+        margin: 0;
     }
-
+    
     .value-card {
-        padding: 2rem;
-        background: var(--background-color);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        transition: var(--transition);
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        border: 1px solid rgba(0, 0, 0, 0.03);
     }
-
+    
+    .value-card::before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        right: -1px;
+        bottom: -1px;
+        background: var(--primary-gradient);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 0;
+    }
+    
     .value-card:hover {
-        border-color: var(--primary-color);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.08);
     }
-
-    /* Team Section */
-    .team-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 2rem;
-        margin-top: 1.5rem;
+    
+    .value-card:hover::before {
+        opacity: 0.1;
     }
-
-    .team-member {
-        text-align: center;
-        padding: 1rem;
+    
+    .value-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 2rem;
+        background: var(--primary-gradient);
+        color: white;
+        font-size: 1.75rem;
+        position: relative;
+        transition: transform 0.3s ease;
     }
-
-    .team-avatar {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-bottom: 1rem;
-        border: 2px solid var(--border-color);
+    
+    .value-card:hover .value-icon {
+        transform: rotate(15deg);
     }
-
-    /* Legal Content */
+    
+    .value-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1.25rem;
+        color: var(--text-dark);
+        font-weight: 700;
+        position: relative;
+    }
+    
+    .value-card p {
+        color: var(--text-light);
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    /* Legal Sections */
     .legal-section {
-        margin: 3rem 0;
+        margin-bottom: 4rem;
+        padding: 2.5rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-
-    .legal-section h2 {
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid var(--border-color);
+    
+    .legal-section:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05);
     }
-
-    .legal-list {
-        list-style: none;
-        margin: 1.5rem 0;
+    
+    .section-heading {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        color: var(--text-dark);
+        position: relative;
+        padding-left: 2rem;
+        display: flex;
+        align-items: center;
     }
-
-    .legal-list li {
-        padding: 0.5rem 0;
-        border-bottom: 1px solid var(--border-color);
+    
+    .section-heading::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        height: 1.75rem;
+        width: 6px;
+        background: var(--primary-gradient);
+        border-radius: 3px;
     }
-
-    .legal-list li:last-child {
-        border-bottom: none;
+    
+    .legal-section p {
+        margin-bottom: 1.5rem;
+        color: var(--text-medium);
+        font-size: 1.1rem;
+        line-height: 1.7;
     }
-
-    /* Contact Information */
+    
+    .legal-section ul {
+        margin-bottom: 2rem;
+        padding-left: 2rem;
+    }
+    
+    .legal-section li {
+        margin-bottom: 1rem;
+        position: relative;
+        list-style-type: none;
+        padding-left: 2rem;
+        font-size: 1.1rem;
+    }
+    
+    .legal-section li::before {
+        content: '▹';
+        position: absolute;
+        left: 0;
+        color: #6e45e2;
+        font-weight: bold;
+    }
+    
+    .legal-section strong {
+        color: var(--text-dark);
+        font-weight: 600;
+    }
+    
     .contact-info {
-        background: #f8fafc;
-        padding: 2rem;
-        border-radius: 0.5rem;
-        margin-top: 2rem;
+        display: grid;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: rgba(110, 69, 226, 0.03);
+        border-radius: 8px;
     }
-
-    /* Responsive Design */
+    
+    .contact-info p {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 0;
+    }
+    
+    .contact-info i {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--primary-gradient);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 1200px) {
+        .legal-container {
+            padding: 3rem 1.5rem;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .page-title {
+            font-size: 2.5rem;
+        }
+        
+        .value-card {
+            padding: 2rem;
+        }
+    }
+    
     @media (max-width: 768px) {
         .legal-container {
-            padding: 1rem;
+            padding: 2rem 1rem;
         }
-
-        h1 { font-size: 2rem; }
-        h2 { font-size: 1.75rem; }
-
-        .content-section {
-            padding: 1rem;
+        
+        .page-title {
+            font-size: 2rem;
         }
-    }
-
-    @media (max-width: 480px) {
-        .value-grid {
-            grid-template-columns: 1fr;
+        
+        .section-heading {
+            font-size: 1.5rem;
         }
     }
-    .admin-actions {
-        margin-top: 2rem;
-        text-align: right;
+    
+    @media (max-width: 576px) {
+        .page-title {
+            font-size: 1.8rem;
+        }
+        
+        .page-subtitle {
+            font-size: 1.1rem;
+        }
+        
+        .value-card h3 {
+            font-size: 1.3rem;
+        }
+        
+        .legal-section {
+            padding: 1.5rem;
+        }
     }
-
-    .admin-button {
-        background: var(--primary-color);
-        color: white;
-        padding: 0.8rem 1.5rem;
-        border-radius: 0.5rem;
-        text-decoration: none;
-        font-weight: 500;
-        transition: var(--transition);
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .admin-button:hover {
-        background: var(--secondary-color);
-        transform: translateY(-1px);
-    }
-
-    .admin-button svg {
-        width: 1.2rem;
-        height: 1.2rem;
-        fill: currentColor;
-    }
-
 </style>
 
 <!-- About Page Content -->
@@ -211,19 +327,6 @@
         </div>
     </div>
 
-    <!-- Team Section -->
-    <section class="content-section">
-        <h2 class="section-heading">Our Team</h2>
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-3 col-sm-6">
-                <div class="team-member">
-                    <img src="{% static 'images/ceo.jpg' %}" alt="CEO" class="team-avatar">
-                    <h4>Prajwol Rai</h4>
-                    <p>I love to game</p>
-                </div>
-            </div>
-        </div>
-    </section>
 </section>
 
 <!-- Privacy Policy Template -->
@@ -234,16 +337,6 @@
                 <h1 class="page-title">Privacy Policy</h1>
                 <p class="page-subtitle">Effective date: March 1, 2024</p>
             </div>
-            {% if request.user.is_superuser %}
-            <div class="admin-actions">
-                <a href="{% url 'update_privacy_policy' %}" class="admin-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75 1.84-1.83zM3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/>
-                    </svg>
-                    Update Policy
-                </a>
-            </div>
-            {% endif %}
         </div>
     </header>
     <div class="legal-section">

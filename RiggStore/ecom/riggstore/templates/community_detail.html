@@ -993,6 +993,7 @@
     </div>
 </div>
 
+
 <script>
     // Handles the response from fetch requests
     const handleResponse = async (response) => {
@@ -1095,7 +1096,6 @@
         }
     }
 
-
     // Unified Join Community Handler
     async function handleJoinCommunity(button) {
         try {
@@ -1110,7 +1110,6 @@
             if (!confirmed) return;
 
             button.disabled = true;
-            const originalHTML = button.innerHTML;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             const response = await fetch(`{% url 'join_community' community_obj.id %}`, {
@@ -1129,10 +1128,8 @@
                     btn.innerHTML = data.joined ? 
                         '<i class="fas fa-door-open me-2"></i>Leave Community' : 
                         '<i class="fas fa-door-open me-2"></i>Join Community';
-                    if (btn.id === 'join-community') {
-                        btn.classList.toggle('btn-danger', data.joined);
-                        btn.classList.toggle('btn-success', !data.joined);
-                    }
+                    btn.classList.toggle('btn-danger', data.joined);
+                    btn.classList.toggle('btn-success', !data.joined);
                 });
                 document.querySelector('.community-meta small').textContent = 
                     `Created by {{ community_obj.created_by.f_name }} · 
@@ -1219,7 +1216,7 @@
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': '{{ csrf_token }}',
-                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Content-Type': 'application/json',
                         }
                     });
                     const data = await handleResponse(response);
@@ -1264,89 +1261,74 @@
             const deleteComment = e.target.closest('.delete-comment');
             if (deleteComment) handleDeletion('comment', deleteComment.dataset.commentId, `{% url 'delete_comment' 0 %}`);
         });
-    });
 
-    
-    document.addEventListener('DOMContentLoaded', function() {
-    // Pin/Unpin Post Functionality
-    document.querySelectorAll('.toggle-pin-post').forEach(button => {
-        button.addEventListener('click', async (e) => {
-            const postId = e.currentTarget.dataset.postId;
-            const button = e.currentTarget;
-            
-            try {
-                const response = await fetch(`{% url 'toggle_pin' 0 %}`.replace('0', postId), {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin'
-                });
-
-                const data = await response.json();
+        // Pin/Unpin Functionality
+        document.querySelectorAll('.toggle-pin-post').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const postId = e.currentTarget.dataset.postId;
+                const button = e.currentTarget;
                 
-                if (data.success) {
-                    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-                    const header = postElement.querySelector('.post-header');
-
-                    // Update pinned badge
-                    let badge = header.querySelector('.pinned-badge');
-                    if (data.pinned) {
-                        if (!badge) {
-                            badge = document.createElement('div');
-                            badge.className = 'pinned-badge';
-                            badge.innerHTML = `
-                                <i class="fas fa-thumbtack text-info"></i>
-                                <span class="text-muted small">
-                                    Pinned by Admin
-                                    ${data.pinned_at ? `· ${data.pinned_at}` : ''}
-                                </span>
-                            `;
-                            header.appendChild(badge);
+                try {
+                    const response = await fetch(`{% url 'toggle_pin' 0 %}`.replace('0', postId), {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
                         }
-                    } else {
-                        if (badge) badge.remove();
-                    }
+                    });
 
-                    // Update button text
-                    button.innerHTML = data.pinned 
-                        ? '<i class="fas fa-thumbtack text-info"></i> Unpin'
-                        : '<i class="fas fa-thumbtack"></i> Pin';
-
-                    // Move pinned post to top
-                    if (data.pinned) {
-                        postElement.parentNode.prepend(postElement);
-                    }
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     
-                    showNotification(data.pinned ? 'Post pinned!' : 'Post unpinned');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+                        const header = postElement.querySelector('.post-header');
+
+                        // Update pinned badge
+                        let badge = header.querySelector('.pinned-badge');
+                        if (data.pinned) {
+                            if (!badge) {
+                                badge = document.createElement('div');
+                                badge.className = 'pinned-badge';
+                                badge.innerHTML = `
+                                    <i class="fas fa-thumbtack text-info"></i>
+                                    <span class="text-muted small">
+                                        Pinned by Admin
+                                        ${data.pinned_at ? `· ${data.pinned_at}` : ''}
+                                    </span>`;
+                                header.appendChild(badge);
+                            }
+                        } else if (badge) {
+                            badge.remove();
+                        }
+
+                        // Update button
+                        button.innerHTML = data.pinned 
+                            ? '<i class="fas fa-thumbtack text-info"></i> Unpin'
+                            : '<i class="fas fa-thumbtack"></i> Pin';
+
+                        // Reorder posts
+                        if (data.pinned) {
+                            const container = document.querySelector('.posts-feed');
+                            if (container && container.firstChild !== postElement) {
+                                container.prepend(postElement);
+                            }
+                        }
+                        
+                        showNotification(data.pinned ? 'Post pinned!' : 'Post unpinned');
+                    }
+                } catch (error) {
+                    console.error('Pin error:', error);
+                    const message = error.message.includes('403') 
+                        ? 'You need admin privileges to pin posts'
+                        : 'Error updating pin status';
+                    showNotification(message, false);
                 }
-            } catch (error) {
-                console.error('Toggle pin error:', error);
-                showNotification('Error updating pin status: ' + error.message, false);
-            }
+            });
         });
-    });
 
-        // Notification System
-        function showNotification(message, isSuccess = true) {
-            const toast = document.createElement('div');
-            toast.className = `notification-toast ${isSuccess ? 'success' : 'error'}`;
-            toast.innerHTML = `
-                <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                <span>${message}</span>
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.add('visible');
-                setTimeout(() => {
-                    toast.classList.remove('visible');
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            }, 10);
-        }
-
-        // CSS for notifications
+        // Notification CSS
         const style = document.createElement('style');
         style.textContent = `
             .notification-toast {
@@ -1379,7 +1361,5 @@
         document.head.appendChild(style);
     });
 </script>
-
-
 
 {% endblock %}

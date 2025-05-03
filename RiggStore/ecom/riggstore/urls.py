@@ -41,11 +41,15 @@ urlpatterns = [
     path('clear-all-downloads/', views.clear_all_downloads, name='clear-all-downloads'),
     
     # Admin
+    path('admin-panel/categories/', views.admin_categories, name='admin_categories'),
+    path('admin-panel/categories/add/', views.add_category, name='add_category'),
+    path('admin-panel/categories/edit/<int:category_id>/', views.edit_category, name='edit_category'),
+    path('admin-panel/categories/delete/<int:category_id>/', views.delete_category, name='delete_category'),
     path('admin-panel/', views.admin_dashboard, name='admin_panel'),
     path('admin-panel/delete-user/<int:user_id>/', views.delete_user, name='delete_user'),
     path('admin-panel/delete-community/<int:community_id>/', views.admin_delete_community, name='admin_delete_community'),
     path('delete-submission/<int:submission_id>/', views.delete_submission, name='delete_submission'),
-
+    
     # Game Management
     path('game/<int:game_id>/', views.game_details, name='game_details'),
     path('upload-game/', views.upload_game, name='upload_game'),
@@ -55,12 +59,11 @@ urlpatterns = [
     path('edit-submission/<int:submission_id>/', views.edit_submission, name='edit_submission'),
     path('games/', views.game_list, name='game_list'),
     
-    #order
+    # Order
     path('add-to-cart/<int:game_id>/', views.add_to_cart, name='add_to_cart'),
     path('cart/', views.cart_view, name='cart_view'),
     path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('cart/delete-selected/', views.delete_selected_items, name='delete_selected_items'),
-
     path('download/<int:game_id>/', views.download_game, name='download_game'),
     path('download-free/', views.download_free_games, name='download_free_games'),
     path('download-purchased/<int:game_id>/', views.download_purchased_game, name='download-purchased'),
@@ -70,7 +73,7 @@ urlpatterns = [
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('admin/privacy-policy/update/', views.update_privacy_policy, name='update_privacy_policy'),
 
-    #payment
+    # Payment
     path('khalti-checkout/', views.create_khalti_checkout, name='khalti-checkout'),
     path('khalti/callback/', views.khalti_callback, name='khalti-callback'),
     path('payment/success/', views.payment_success, name='payment-success'),

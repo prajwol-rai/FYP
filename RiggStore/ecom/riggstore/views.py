@@ -51,7 +51,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render
 from .models import Order, OrderItem, CartItem
-
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+import json
+from datetime import datetime, timedelta
+from .models import Game, DownloadHistory, OrderItem
+from django.db.models import Count, Sum
 # ======================
 # Authentication Views
 # ======================
@@ -450,31 +455,36 @@ def toggle_pin(request, post_id):
         community = post.community
         user = request.user.customer
 
+        # Verify permissions
         if user != community.created_by and user not in community.admins.all():
-            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+            return JsonResponse({
+                'success': False,
+                'error': 'You need admin privileges to pin posts'
+            }, status=403)
 
+        # Toggle pin status
+        post.pinned = not post.pinned
         if post.pinned:
-            # Unpin the post
-            post.pinned = False
+            post.pinned_by = user
+            post.pinned_at = timezone.now()
+        else:
             post.pinned_by = None
             post.pinned_at = None
-        else:
-            # Pin the post
-            post.pinned = True
-            post.pinned_by = user
-            post.pinned_at = time.timezone.now()
             
         post.save()
+
         return JsonResponse({
             'success': True,
             'pinned': post.pinned,
-            'pinned_by': post.pinned_by.f_name if post.pinned_by else '',
-            'pinned_at': post.pinned_at.strftime("%b %d, %Y %H:%M") if post.pinned_at else ''
+            'pinned_at': post.pinned_at.strftime("%b %d") if post.pinned_at else None  # Only month and day
         })
 
     except Exception as e:
         logger.error(f"Pin toggle error: {str(e)}")
-        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+        return JsonResponse({
+            'success': False,
+            'error': 'Server error'
+        }, status=500)
     
 @login_required
 @require_POST  # Ensure this view only handles POST requests
@@ -1053,9 +1063,60 @@ def admin_dashboard(request):
     # Render the admin dashboard template with the provided context
     return render(request, 'admin.html', context)
 
+@staff_member_required
+def admin_categories(request):
+    categories = Category.objects.all().order_by('name')
+    return render(request, 'admin/admin_categories.html', {'categories': categories})
 
+@staff_member_required
+def add_category(request):
+    if request.method == 'POST':
+        category_name = request.POST.get('category_name', '').strip()
+        
+        if not category_name:
+            messages.error(request, "Category name cannot be empty")
+            return redirect('admin_categories')
+            
+        if Category.objects.filter(name__iexact=category_name).exists():
+            messages.error(request, f"Category '{category_name}' already exists")
+            return redirect('admin_categories')
+            
+        Category.objects.create(name=category_name)
+        messages.success(request, f"Category '{category_name}' added successfully")
+        return redirect('admin_categories')
+        
+    return redirect('admin_categories')
 
+@staff_member_required
+def edit_category(request, category_id):
+    category = get_object_or_404(Category, pk=category_id)
+    
+    if request.method == 'POST':
+        new_name = request.POST.get('category_name', '').strip()
+        
+        if not new_name:
+            messages.error(request, "Category name cannot be empty")
+            return redirect('admin_categories')
+            
+        if Category.objects.filter(name__iexact=new_name).exclude(pk=category_id).exists():
+            messages.error(request, f"Category '{new_name}' already exists")
+            return redirect('admin_categories')
+            
+        category.name = new_name
+        category.save()
+        messages.success(request, "Category updated successfully")
+        return redirect('admin_categories')
+        
+    return render(request, 'edit_category.html', {'category': category})
 
+@staff_member_required
+def delete_category(request, category_id):
+    if request.method == 'POST':
+        category = get_object_or_404(Category, pk=category_id)
+        category_name = category.name
+        category.delete()
+        messages.success(request, f"Category '{category_name}' deleted successfully")
+    return redirect('admin_categories')
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)  # Ensure that only staff can access this view
@@ -1337,21 +1398,6 @@ def review_submissions(request):
     return render(request, 'admin/review_submissions.html', {'submissions': submissions})
     
     
-# views.py
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django.db import transaction
-from decimal import Decimal, InvalidOperation
-
-from .models import (
-    GameSubmission,
-    Game,
-    Community,
-)
-# (import Category or other models here if your templates need them)
-
 
 @login_required
 @user_passes_test(lambda u: u.is_staff or u.is_superuser)
@@ -1373,10 +1419,7 @@ def review_submissions(request):
 @user_passes_test(lambda u: u.is_staff)
 @transaction.atomic
 def review_submission(request, submission_id):
-    """
-    Review (approve/reject) a single submission.
-    On approval, publish a Game and create its Community.
-    """
+
     submission = get_object_or_404(
         GameSubmission.objects
             .select_related('developer__user')
@@ -1881,11 +1924,22 @@ def payment_success(request):
             customer=request.user.customer,
             payment_status='completed'
         ).prefetch_related('games').latest('created_at')
-        
+
+        customer = request.user.customer
+        games = order.games.all()
+
+        # Auto-join official communities
+        for game in games:
+            community = getattr(game, 'official_community', None)
+            if community and not community.members.filter(id=customer.id).exists():
+                community.members.add(customer)
+                messages.info(request, f"You've been added to the '{community.name}' community for {game.name}!")
+
         return render(request, 'payments/success.html', {
             'order': order,
-            'games': order.games.all()
+            'games': games
         })
+        
     except Order.DoesNotExist:
         return redirect('payment-failed')
 
