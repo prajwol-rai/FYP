@@ -856,7 +856,7 @@
                     {% endif %}
 
                         <!-- Delete Button -->
-                        {% if user == post.author.user or community_obj.created_by == user.customer or user.customer in community_obj.admins.all %}
+                        {% if user == post.author.user or community_obj.created_by == user.customer or is_moderator %}
                         <button class="btn btn-danger btn-sm delete-post" data-post-id="{{ post.id }}">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -908,11 +908,13 @@
                                 <div class="comment-content">
                                     <div class="comment-header">
                                         <strong>{{ comment.user.f_name }}</strong>
+
                                         {% if user == comment.user.user or user == post.author.user or is_community_creator or is_moderator %}
                                         <button class="btn btn-link btn-sm delete-comment" data-comment-id="{{ comment.id }}">
                                             <i class="fas fa-times text-danger"></i>
                                         </button>
                                         {% endif %}
+
                                     </div>
                                     <p>{{ comment.text }}</p>
                                     <small>{{ comment.created_at|timesince }} ago</small>

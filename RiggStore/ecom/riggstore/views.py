@@ -423,17 +423,20 @@ def community_detail(request, community_id):
     community_obj.is_official = community_obj.game is not None 
     is_member = False
     is_community_creator = False
+    is_moderator = False
 
     if request.user.is_authenticated:
         user_customer = request.user.customer
         is_member = community_obj.members.filter(id=user_customer.id).exists()
         is_community_creator = user_customer == community_obj.created_by
-    else:
-        user_customer = None
+        is_moderator = CommunityMember.objects.filter(
+            community=community_obj,
+            customer=user_customer,
+            role='moderator'
+        ).exists()
 
     posts = Post.objects.none()
     if is_member or is_community_creator:
-        # Order by pinned first, then by created_at (most recent)
         posts = Post.objects.filter(community=community_obj).order_by('-pinned', '-created_at')
 
     context = {
@@ -443,6 +446,7 @@ def community_detail(request, community_id):
         'post_form': PostForm(),
         'is_member': is_member,
         'is_community_creator': is_community_creator,
+        'is_moderator': is_moderator,
     }
     return render(request, 'community_detail.html', context)
 
@@ -487,27 +491,28 @@ def toggle_pin(request, post_id):
         }, status=500)
     
 @login_required
-@require_POST  # Ensure this view only handles POST requests
+@require_POST
 def join_community(request, community_id):
-    # Retrieve the community object or return a 404 if not found
     community = get_object_or_404(Community, id=community_id)
-    customer = request.user.customer  # Get the current logged-in customer's instance
+    customer = request.user.customer
     
-    # Check if the customer is already a member of the community
     if community.members.filter(id=customer.id).exists():
-        # If the customer is a member, remove them from the community
         community.members.remove(customer)
-        joined = False  # Set joined status to False 
+        CommunityMember.objects.filter(community=community, customer=customer).delete()
+        joined = False
     else:
-        # If the customer is not a member, add them to the community
         community.members.add(customer)
-        joined = True  # Set joined status to True
+        CommunityMember.objects.get_or_create(
+            community=community,
+            customer=customer,
+            defaults={'role': 'member'}
+        )
+        joined = True
     
-    # Return JSON response with the result of the join operation
     return JsonResponse({
         'success': True,
-        'joined': joined,  # Status indicating whether the user joined or left
-        'member_count': community.members.count()  # Return the updated member count
+        'joined': joined,
+        'member_count': community.members.count()
     })
 
 @login_required
@@ -548,55 +553,36 @@ def community_members(request, community_id):
     # Render the community members template with the context data
     return render(request, 'community_members.html', context)
 
-# Promote a user to moderator status in a specific community
 @login_required 
 def promote_to_moderator(request, community_id, user_id):
-    # Retrieve the community or return a 404 if not found
     community = get_object_or_404(Community, id=community_id)
-    # Retrieve the user or return a 404 if not found
     user = get_object_or_404(User, id=user_id)
-    customer = user.customer  # Get the customer's instance associated with the user
+    customer = user.customer
 
-    # Check if the current user is an admin of the community
     if request.user.customer in community.admins.all():
-        # Get or create a CommunityMember entry for the user in the specified community
-        member_entry, created = CommunityMember.objects.get_or_create(
+        # Ensure user is first added as member
+        community.members.add(customer)
+        # Update or create moderator role
+        CommunityMember.objects.update_or_create(
             community=community,
             customer=customer,
-            defaults={'role': 'moderator'}  # Default role is 'moderator'
+            defaults={'role': 'moderator'}
         )
-        if not created:
-            # If the entry already exists, just update the role to 'moderator'
-            member_entry.role = 'moderator'
-            member_entry.save()
     
-    # Redirect to the community members page
     return redirect('community_members', community_id=community.id)
 
 @login_required
 def demote_to_member(request, community_id, user_id):
-    # Retrieve the community or return a 404 if not found
     community = get_object_or_404(Community, id=community_id)
-    # Retrieve the user or return a 404 if not found
     user = get_object_or_404(User, id=user_id)
-    customer = user.customer  # Get the customer's instance associated with the user
+    customer = user.customer
 
-    # Check if the current user is an admin of the community
     if request.user.customer in community.admins.all():
-        try:
-            # Retrieve the CommunityMember entry for the user in the specified community
-            member_entry = CommunityMember.objects.get(
-                community=community,
-                customer=customer
-            )
-            # Change the user's role to 'member'
-            member_entry.role = 'member'
-            member_entry.save()
-        except CommunityMember.DoesNotExist:
-            # If the member entry does not exist, do nothing
-            pass
+        CommunityMember.objects.filter(
+            community=community,
+            customer=customer
+        ).update(role='member')
     
-    # Redirect to the community members page
     return redirect('community_members', community_id=community.id)
 
 @login_required
@@ -770,11 +756,12 @@ def delete_post(request, post_id):
         user = request.user.customer
         community = post.community
 
-        is_moderator = community.communitymember_set.filter(
-            customer=user, 
+        is_moderator = CommunityMember.objects.filter(
+            community=community,
+            customer=user,
             role='moderator'
         ).exists()
-        
+
         allowed = (
             user == post.author or
             user == community.created_by or
@@ -797,8 +784,9 @@ def delete_comment(request, comment_id):
         user = request.user.customer
         community = comment.post.community
 
-        is_moderator = community.communitymember_set.filter(
-            customer=user, 
+        is_moderator = CommunityMember.objects.filter(
+            community=community,
+            customer=user,
             role='moderator'
         ).exists()
         
